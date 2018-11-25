@@ -1,0 +1,29 @@
+$title-color: #f0c808;
+
+h1, h2, h3, h4, h5, h6 {
+	.zola-anchor {
+		color: #4183c4;
+		padding-left: 10px;
+		text-decoration: none;
+		font-weight: initial;
+		visibility: hidden;
+
+	}
+	&:hover {
+		.zola-anchor {
+			visibility: visible;
+		}
+	}
+}
+.content {
+	padding: 8px;
+}
+.title {
+	background-color: $title-color;
+	h1 {
+		font-size: 3em;
+		margin-top: 0;
+		margin-bottom: 0;
+		padding: 8px;
+	}
+}

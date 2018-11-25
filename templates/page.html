@@ -1,0 +1,38 @@
+{% extends "index.html" %}
+
+
+{% block content %}
+	<div class="title">
+		<h1>
+			{{ page.title }}
+			<a class="zola-anchor" href="#">🔗</a>
+		</h1>
+	</div>
+	<div class="content">
+		{{ page.content | safe }}
+	</div>
+{% endblock content %}
+
+{% block toolbar %}
+<a href="edit?page={{ page.slug }}">EDIT <i class="icon-edit"></i></a>
+{% endblock toolbar %}
+
+{% block toc %}
+	<h3> TABLE OF CONTENTS </h3>
+	<ul>
+		{% for h1 in page.toc %}
+			<li>
+				<a href="{{h1.permalink | safe}}">{{ h1.title }}</a>
+				{% if h1.children %}
+					<ul>
+						{% for h2 in h1.children %}
+							<li>
+								<a href="{{h2.permalink | safe}}">{{ h2.title }}</a>
+							</li>
+						{% endfor %}
+					</ul>
+				{% endif %}
+			</li>
+		{% endfor %}
+		</ul>
+{% endblock toc %}
