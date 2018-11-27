@@ -4,12 +4,7 @@ use super::git;
 use super::state;
 use super::md2html;
 
-#[derive(Serialize, Debug)]
-struct PageInfo {
-    title: String,
-    permalink: String,
-}
-
+use super::page::PageInfo;
 
 pub fn index() -> impl Fn(Arc<state::State>) -> String + Clone {
     move |state| {

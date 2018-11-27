@@ -1,6 +1,4 @@
 use pulldown_cmark::{html, Event, Parser, Tag};
-use serde::ser::{Serialize, SerializeSeq, SerializeStruct, Serializer};
-use slab_tree::{NodeRef, Tree};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::ThemeSet;
 use syntect::html::{
@@ -17,57 +15,8 @@ fn get_syntax_for_block<'a>(set: &'a SyntaxSet, hint: &str) -> &'a SyntaxReferen
     })
 }
 
-pub struct TocChildren<'a>(&'a NodeRef<'a, Section>);
-impl<'a> Serialize for TocChildren<'a> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_seq(None)?;
-        for c in self.0.children() {
-            state.serialize_element(&TocNode(&c))?;
-        }
-        state.end()
-    }
-}
-pub struct TocNode<'a>(&'a NodeRef<'a, Section>);
-impl<'a> Serialize for TocNode<'a> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("Section", 3)?;
-        state.serialize_field("title", &self.0.data().title)?;
-        state.serialize_field("link", &self.0.data().link)?;
-        state.serialize_field("level", &self.0.data().link)?;
-        state.serialize_field("children", &TocChildren(&self.0))?;
-        state.end()
-    }
-}
-pub struct TocTree(Tree<Section>);
-impl Serialize for TocTree {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let root = self.0.root();
-        TocNode(&root).serialize(serializer)
-    }
-}
-
-#[derive(Serialize)]
-pub struct Page {
-    pub toc: TocTree,
-    pub slug: String,
-    pub content: String,
-    pub title: String,
-}
-#[derive(Serialize, Debug)]
-pub struct Section {
-    pub link: String,
-    pub title: String,
-    pub level: i32,
-}
+use super::page::{Page, Section, TocTree};
+use slab_tree::Tree;
 
 enum ParsingPhase<'a> {
     Normal,

@@ -21,7 +21,7 @@ mod scss2css;
 mod git;
 mod state;
 mod templates;
-
+mod page;
 
 fn main() {
     std::env::set_var("RUST_LOG", "wikimark=info");
