@@ -28,3 +28,16 @@ pub fn file_getter(repo_path: &str) -> impl Fn(String) -> String + Clone {
         get_file(&path, &repo)
     }
 }
+
+#[derive(Deserialize, Debug)]
+pub struct CommitInfo {
+    pub content: String,
+}
+pub fn file_committer(repo_path: &str) -> impl Fn(CommitInfo) -> bool + Clone {
+    let repo_path = repo_path.to_owned();
+    move |info| {
+        let repo = get_repo(&repo_path);
+        info!("{:?}", info);
+        true
+    }
+}

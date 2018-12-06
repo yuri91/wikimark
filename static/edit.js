@@ -2,21 +2,16 @@ let base_url = "http://localhost:8000/";
 
 let simplemde = new SimpleMDE();
 
-let front_regex = /\+\+\+([\s\S]*)\+\+\+\n\n/;
 function download() {
 	let params = (new URL(document.location)).searchParams;
 	let page = params.get("page");
 	if (!page)
 		return;
-	fetch(base_url+"page/"+page)
-		.then(r => r.json())
-		.then(data => {
-		if (data.error) {
-			console.log(data);
-			return;
-		}
-		simplemde.value(data.content);
-		document.getElementById("title").value = data.metadata.title;
+	fetch(base_url+"repo/"+page+".md")
+		.then(r => r.text())
+		.then(md => {
+		simplemde.value(md);
+		//document.getElementById("title").value = data.metadata.title;
 	}).catch(e => console.log(e));
 }
 download();
@@ -38,7 +33,7 @@ function upload() {
 		},
 		content: content,
 	};
-	fetch(base_url+"page/"+page, {
+	fetch(base_url+"commit/"+page, {
 		method: "POST",
 		body: JSON.stringify(data),
 		headers: {
@@ -46,6 +41,6 @@ function upload() {
 		},
 		credentials: 'include',
 	}).then(r => {
-		window.location.href = base_url+'pages/'+page;
+		window.location.href = base_url+'page/'+page;
 	}).catch(e => console.log(e));
 }

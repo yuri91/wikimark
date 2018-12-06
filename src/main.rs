@@ -53,16 +53,35 @@ fn main() {
         .map(git::file_getter("repo"));
 
     let all = warp::get2()
-        .and(inject_state)
+        .and(inject_state.clone())
         .and(path!("all"))
         .map(templates::all());
+
+    let edit = warp::get2()
+        .and(inject_state)
+        .and(path!("edit"))
+        .map(templates::edit());
+
+    let commit = warp::post2()
+        .and(path!("commit"))
+        .and(warp::body::json())
+        .map(git::file_committer("repo"))
+        .map(|r| {
+            if r {
+                warp::http::StatusCode::BAD_REQUEST
+            } else {
+                warp::http::StatusCode::CREATED
+            }
+        });
 
     let api = index
         .or(page)
         .or(css)
         .or(statics)
         .or(md)
-        .or(all);
+        .or(all)
+        .or(edit)
+        .or(commit);
 
     let routes = api.with(warp::log("wikimark"));
     warp::serve(routes).run(([127, 0, 0, 1], 8000));

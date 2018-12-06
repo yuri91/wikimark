@@ -48,3 +48,10 @@ pub fn all() -> impl Fn(Arc<state::State>) -> String + Clone {
         state.tera.render("pages.html", &ctx).expect("template error")
     }
 }
+
+pub fn edit() -> impl Fn(Arc<state::State>) -> String + Clone {
+    move |state| {
+        let ctx = tera::Context::new();
+        state.tera.render("edit.html", &ctx).expect("template error")
+    }
+}
