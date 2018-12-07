@@ -1,4 +1,5 @@
 use tera::Tera;
+use tera::compile_templates;
 
 use std::sync::Arc;
 

@@ -1,20 +1,5 @@
-extern crate pulldown_cmark;
-extern crate syntect;
-#[macro_use]
-extern crate tera;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-#[macro_use]
-extern crate warp;
-extern crate sass_rs;
-#[macro_use]
-extern crate log;
-extern crate git2;
-extern crate pretty_env_logger;
-extern crate slab_tree;
-
 use warp::Filter;
+use warp::path;
 
 mod git;
 mod md2html;

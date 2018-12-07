@@ -1,4 +1,6 @@
+use serde_derive::Deserialize;
 use git2::Repository;
+use log::info;
 
 pub fn get_repo(path: &str) -> Repository {
     Repository::open_bare(path).unwrap_or_else(|_| {

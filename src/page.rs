@@ -1,4 +1,5 @@
 use serde::ser::{Serialize, SerializeSeq, SerializeStruct, Serializer};
+use serde_derive::Serialize;
 use slab_tree::{NodeRef, Tree};
 
 #[derive(Serialize, Debug)]
