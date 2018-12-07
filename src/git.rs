@@ -8,17 +8,21 @@ pub fn get_repo(path: &str) -> Repository {
 }
 
 pub fn get_file(path: &str, repo: &Repository) -> String {
-    let obj = repo.revparse_single(&format!("master:{}", path)).expect("no spec");
+    let obj = repo
+        .revparse_single(&format!("master:{}", path))
+        .expect("no spec");
     let blob = obj.peel_to_blob().expect("no blob");
     let content = std::str::from_utf8(blob.content()).expect("not utf8");
     content.to_owned()
 }
 pub fn list_files(path: &str, repo: &Repository) -> Vec<String> {
-    let obj = repo.revparse_single(&format!("master:{}", path)).expect("no spec");
+    let obj = repo
+        .revparse_single(&format!("master:{}", path))
+        .expect("no spec");
     let tree = obj.peel_to_tree().expect("no tree");
-    tree.iter().filter_map(|e| {
-        e.name().map(|e| e.to_owned())
-    }).collect()
+    tree.iter()
+        .filter_map(|e| e.name().map(|e| e.to_owned()))
+        .collect()
 }
 
 pub fn file_getter(repo_path: &str) -> impl Fn(String) -> String + Clone {
@@ -36,7 +40,7 @@ pub struct CommitInfo {
 pub fn file_committer(repo_path: &str) -> impl Fn(CommitInfo) -> bool + Clone {
     let repo_path = repo_path.to_owned();
     move |info| {
-        let repo = get_repo(&repo_path);
+        let _repo = get_repo(&repo_path);
         info!("{:?}", info);
         true
     }

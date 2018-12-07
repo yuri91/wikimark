@@ -93,7 +93,8 @@ pub fn parse(md: &str, parse_context: &ParseContext) -> Page {
                         link: "".to_owned(),
                         title: "title".to_owned(),
                         level,
-                    }).node_id();
+                    })
+                    .node_id();
                 phase = ParsingPhase::Header(String::new());
                 event
             }

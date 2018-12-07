@@ -10,18 +10,18 @@ extern crate warp;
 extern crate sass_rs;
 #[macro_use]
 extern crate log;
-extern crate pretty_env_logger;
 extern crate git2;
+extern crate pretty_env_logger;
 extern crate slab_tree;
 
 use warp::Filter;
 
-mod md2html;
-mod scss2css;
 mod git;
+mod md2html;
+mod page;
+mod scss2css;
 mod state;
 mod templates;
-mod page;
 
 fn main() {
     std::env::set_var("RUST_LOG", "wikimark=info");
