@@ -28,12 +28,10 @@ function upload() {
 	console.log(page);
 	let content = simplemde.value();
 	let data =  {
-		metadata: {
-			title: title, 
-		},
+		name: page,
 		content: content,
 	};
-	fetch(base_url+"commit/"+page, {
+	fetch(base_url+"commit", {
 		method: "POST",
 		body: JSON.stringify(data),
 		headers: {

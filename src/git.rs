@@ -1,5 +1,5 @@
 use serde_derive::Deserialize;
-use git2::Repository;
+use git2::{Repository, Signature, Error};
 use log::info;
 
 pub fn get_repo(path: &str) -> Repository {
@@ -38,12 +38,24 @@ pub fn file_getter(repo_path: &str) -> impl Fn(String) -> String + Clone {
 #[derive(Deserialize, Debug)]
 pub struct CommitInfo {
     pub content: String,
+    pub name: String,
 }
-pub fn file_committer(repo_path: &str) -> impl Fn(CommitInfo) -> bool + Clone {
+pub fn file_committer(repo_path: &str) -> impl Fn(CommitInfo) -> Result<(), Error> + Clone {
     let repo_path = repo_path.to_owned();
     move |info| {
-        let _repo = get_repo(&repo_path);
-        info!("{:?}", info);
-        true
+        let repo = get_repo(&repo_path);
+        let obj = repo
+            .revparse_single("master:")
+            .expect("no spec");
+        let tree = obj.peel_to_tree()?;
+        let mut treebuilder = repo.treebuilder(Some(&tree))?;
+        let blob = repo.blob(info.content.as_bytes())?;
+        treebuilder.insert(&format!("{}.md", info.name), blob, 0o100644)?;
+        let oid = treebuilder.write()?;
+        let newtree = repo.find_tree(oid)?;
+        let sig = Signature::now("yuri", "yuri@test.com")?;
+        let branch = repo.find_branch("master", git2::BranchType::Local)?;
+        repo.commit(branch.get().name(), &sig, &sig, "test commit message", &newtree, &[&branch.get().peel_to_commit()?])?;
+        Ok(())
     }
 }

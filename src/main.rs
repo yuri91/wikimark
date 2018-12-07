@@ -52,10 +52,12 @@ fn main() {
         .and(warp::body::json())
         .map(git::file_committer("repo"))
         .map(|r| {
-            if r {
-                warp::http::StatusCode::BAD_REQUEST
-            } else {
-                warp::http::StatusCode::CREATED
+            match r {
+                Ok(_) => warp::http::StatusCode::CREATED,
+                Err(e) => {
+                    log::error!("failed to commit file: {:?}", e);
+                    warp::http::StatusCode::INTERNAL_SERVER_ERROR
+                }
             }
         });
 
