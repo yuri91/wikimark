@@ -1,11 +1,11 @@
 use pulldown_cmark::{html, Event, Parser, Tag};
+use slug::slugify;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::ThemeSet;
 use syntect::html::{
     start_highlighted_html_snippet, styled_line_to_highlighted_html, IncludeBackground,
 };
 use syntect::parsing::{SyntaxReference, SyntaxSet};
-use slug::slugify;
 
 use std::borrow::Cow::{Borrowed, Owned};
 
@@ -16,7 +16,7 @@ fn get_syntax_for_block<'a>(set: &'a SyntaxSet, hint: &str) -> &'a SyntaxReferen
     })
 }
 
-use super::page::{Page, Section, TocTree, Metadata};
+use super::page::{Metadata, Page, Section, TocTree};
 use slab_tree::Tree;
 
 enum ParsingPhase<'a> {

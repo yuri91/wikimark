@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::convert::From;
+use std::sync::Arc;
 
 use super::git;
 use super::md2html;
@@ -54,9 +54,7 @@ pub fn index() -> impl Fn(Arc<state::State>) -> Result<String> + Clone {
     move |state| {
         let state = state.clone();
         let ctx = tera::Context::new();
-        Ok(state
-            .tera
-            .render("index.html", &ctx)?)
+        Ok(state.tera.render("index.html", &ctx)?)
     }
 }
 
@@ -71,9 +69,7 @@ pub fn page() -> impl Fn(Arc<state::State>, String) -> Result<String> + Clone {
         let page = md2html::parse(&md, &meta, &state.parse_context);
         let mut ctx = tera::Context::new();
         ctx.insert("page", &page);
-        Ok(state
-            .tera
-            .render("page.html", &ctx)?)
+        Ok(state.tera.render("page.html", &ctx)?)
     }
 }
 
@@ -83,17 +79,13 @@ pub fn all() -> impl Fn(Arc<state::State>) -> Result<String> + Clone {
         let list = git::list_files("", &repo)?;
         let mut ctx = tera::Context::new();
         ctx.insert("pages", &list);
-        Ok(state
-            .tera
-            .render("pages.html", &ctx)?)
+        Ok(state.tera.render("pages.html", &ctx)?)
     }
 }
 
 pub fn edit() -> impl Fn(Arc<state::State>) -> Result<String> + Clone {
     move |state| {
         let ctx = tera::Context::new();
-        Ok(state
-            .tera
-            .render("edit.html", &ctx)?)
+        Ok(state.tera.render("edit.html", &ctx)?)
     }
 }

@@ -1,5 +1,5 @@
-use tera::Tera;
 use tera::compile_templates;
+use tera::Tera;
 
 use std::sync::Arc;
 

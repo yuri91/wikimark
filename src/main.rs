@@ -1,5 +1,5 @@
-use warp::Filter;
 use warp::path;
+use warp::Filter;
 
 mod git;
 mod md2html;
@@ -8,19 +8,19 @@ mod scss2css;
 mod state;
 mod templates;
 
-fn result_adapter<T: warp::Reply+'static, E: std::fmt::Display>(r: Result<T, E>) -> Result<T, warp::Rejection> {
+fn result_adapter<T: warp::Reply + 'static, E: std::fmt::Display>(
+    r: Result<T, E>,
+) -> Result<T, warp::Rejection> {
     match r {
         Ok(t) => Ok(t),
         Err(e) => {
-            log::error!("{}",e);
+            log::error!("{}", e);
             Err(warp::reject::custom(format!("{}", e)))
         }
     }
 }
-fn json<T: serde::Serialize, E>()-> impl Fn(Result<T, E>) -> Result<String,E> + Clone {
-    move |r| {
-        r.map(|t| serde_json::to_string(&t).expect("cannot serialize"))
-    }
+fn json<T: serde::Serialize, E>() -> impl Fn(Result<T, E>) -> Result<String, E> + Clone {
+    move |r| r.map(|t| serde_json::to_string(&t).expect("cannot serialize"))
 }
 
 fn main() {

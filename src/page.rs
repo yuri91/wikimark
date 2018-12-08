@@ -1,5 +1,5 @@
 use serde::ser::{Serialize, SerializeSeq, SerializeStruct, Serializer};
-use serde_derive::{Serialize, Deserialize};
+use serde_derive::{Deserialize, Serialize};
 use slab_tree::{NodeRef, Tree};
 
 pub struct TocChildren<'a>(&'a NodeRef<'a, Section>);
