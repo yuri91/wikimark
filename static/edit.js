@@ -1,4 +1,4 @@
-let base_url = "http://localhost:8000/";
+let base_url = window.location.origin+"/";
 
 let simplemde = new SimpleMDE();
 
