@@ -31,8 +31,7 @@ fn main() {
 
     let state = state::State::create("templates/**/*");
     let inject_state = warp::any().map(move || state.clone());
-    let get_user = warp::header::exact("X-SSL-AUTH", "SUCCESS")
-        .and(warp::header::<String>("X-IDENTITY").map(|i| Some(i)))
+    let get_user = warp::header::<String>("X-Forwarded-User").map(|i| Some(i))
         .or(warp::any().map(move || default_user.clone()))
         .unify();
     let require_user = get_user.clone().and_then(|u| match u {
