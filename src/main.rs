@@ -17,6 +17,11 @@ fn result_adapter<T: warp::Reply+'static, E: std::fmt::Display>(r: Result<T, E>)
         }
     }
 }
+fn json<T: serde::Serialize, E>()-> impl Fn(Result<T, E>) -> Result<String,E> + Clone {
+    move |r| {
+        r.map(|t| serde_json::to_string(&t).expect("cannot serialize"))
+    }
+}
 
 fn main() {
     std::env::set_var("RUST_LOG", "wikimark=info");
@@ -47,7 +52,8 @@ fn main() {
 
     let md = warp::get2()
         .and(path!("repo" / String))
-        .map(git::file_getter("repo"))
+        .map(git::page_getter("repo"))
+        .map(json())
         .and_then(result_adapter);
 
     let all = warp::get2()
@@ -65,7 +71,7 @@ fn main() {
     let commit = warp::post2()
         .and(path!("commit"))
         .and(warp::body::json())
-        .map(git::file_committer("repo"))
+        .map(git::page_committer("repo"))
         .and_then(result_adapter);
 
     let api = index

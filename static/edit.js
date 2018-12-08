@@ -7,28 +7,21 @@ function download() {
 	let page = params.get("page");
 	if (!page)
 		return;
-	fetch(base_url+"repo/"+page+".md")
-		.then(r => r.text())
+	fetch(base_url+"repo/"+page)
+		.then(r => r.json())
 		.then(md => {
-		simplemde.value(md);
-		//document.getElementById("title").value = data.metadata.title;
+		simplemde.value(md.content);
+		document.getElementById("title").value = md.meta.title;
 	}).catch(e => console.log(e));
 }
 download();
 
 function upload() {
 	let params = (new URL(document.location)).searchParams;
-	let page = params.get("page");
 	let title = document.getElementById("title").value;
-	if (!page) {
-		page = getSlug(title, {
-			separator: '-',
-		});
-	}
-	console.log(page);
 	let content = simplemde.value();
 	let data =  {
-		name: page,
+		title: title,
 		content: content,
 	};
 	fetch(base_url+"commit", {
@@ -39,6 +32,10 @@ function upload() {
 		},
 		credentials: 'include',
 	}).then(r => {
-		window.location.href = base_url+'page/'+page;
+		if (r.ok)
+			return r.text();
+		throw new Error("Response code is "+r.status);
+	}).then(link => {
+		window.location.href = base_url+'page/'+link;
 	}).catch(e => console.log(e));
 }

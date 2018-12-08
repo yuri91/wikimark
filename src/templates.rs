@@ -5,12 +5,11 @@ use super::git;
 use super::md2html;
 use super::state;
 
-use super::page::PageInfo;
-
 #[derive(Debug)]
 pub enum Error {
     Git(git::Error),
     Tera(tera::Error),
+    Json(serde_json::Error),
 }
 impl From<git::Error> for Error {
     fn from(err: git::Error) -> Self {
@@ -22,11 +21,17 @@ impl From<tera::Error> for Error {
         Error::Tera(err)
     }
 }
+impl From<serde_json::Error> for Error {
+    fn from(err: serde_json::Error) -> Self {
+        Error::Json(err)
+    }
+}
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Error::Git(g) => write!(f, "{:?}", g),
             Error::Tera(t) => write!(f, "{:?}", t),
+            Error::Json(j) => write!(f, "{:?}", j),
         }
     }
 }
@@ -35,6 +40,7 @@ impl std::error::Error for Error {
         match self {
             Error::Git(_) => "git error",
             Error::Tera(_) => "tera error",
+            Error::Json(_) => "json error",
         }
     }
     fn cause(&self) -> Option<&dyn std::error::Error> {
@@ -56,11 +62,13 @@ pub fn index() -> impl Fn(Arc<state::State>) -> Result<String> + Clone {
 
 pub fn page() -> impl Fn(Arc<state::State>, String) -> Result<String> + Clone {
     move |state, mut fname| {
+        let metaname = format!("meta/{}.json", fname);
         fname.push_str(".md");
         let state = state.clone();
         let repo = git::get_repo("repo")?;
         let md = git::get_file(&fname, &repo)?;
-        let page = md2html::parse(&md, &state.parse_context);
+        let meta = serde_json::from_str(&git::get_file(&metaname, &repo)?)?;
+        let page = md2html::parse(&md, &meta, &state.parse_context);
         let mut ctx = tera::Context::new();
         ctx.insert("page", &page);
         Ok(state
@@ -72,19 +80,7 @@ pub fn page() -> impl Fn(Arc<state::State>, String) -> Result<String> + Clone {
 pub fn all() -> impl Fn(Arc<state::State>) -> Result<String> + Clone {
     move |state| {
         let repo = git::get_repo("repo")?;
-        let list = git::list_files("", &repo)?
-            .into_iter()
-            .filter_map(|f| {
-                if f.ends_with(".md") {
-                    let permalink = format!("/page/{}", &f[0..f.len() - 3]);
-                    let content = git::get_file(&f, &repo).expect("file is in tree but cannot be found");
-                    let title = content.lines().next().expect("empty file").to_owned();
-                    Some(PageInfo { title, permalink })
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
+        let list = git::list_files("", &repo)?;
         let mut ctx = tera::Context::new();
         ctx.insert("pages", &list);
         Ok(state

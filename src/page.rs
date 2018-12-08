@@ -1,12 +1,6 @@
 use serde::ser::{Serialize, SerializeSeq, SerializeStruct, Serializer};
-use serde_derive::Serialize;
+use serde_derive::{Serialize, Deserialize};
 use slab_tree::{NodeRef, Tree};
-
-#[derive(Serialize, Debug)]
-pub struct PageInfo {
-    pub title: String,
-    pub permalink: String,
-}
 
 pub struct TocChildren<'a>(&'a NodeRef<'a, Section>);
 impl<'a> Serialize for TocChildren<'a> {
@@ -46,16 +40,26 @@ impl Serialize for TocTree {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Metadata {
+    pub title: String,
+    pub link: String,
+}
+
 #[derive(Serialize)]
 pub struct Page {
     pub toc: TocTree,
-    pub slug: String,
     pub content: String,
-    pub title: String,
 }
 #[derive(Serialize, Debug)]
 pub struct Section {
     pub link: String,
     pub title: String,
     pub level: i32,
+}
+
+#[derive(Serialize)]
+pub struct RawPage {
+    pub meta: Metadata,
+    pub content: String,
 }

@@ -5,6 +5,7 @@ use syntect::html::{
     start_highlighted_html_snippet, styled_line_to_highlighted_html, IncludeBackground,
 };
 use syntect::parsing::{SyntaxReference, SyntaxSet};
+use slug::slugify;
 
 use std::borrow::Cow::{Borrowed, Owned};
 
@@ -15,7 +16,7 @@ fn get_syntax_for_block<'a>(set: &'a SyntaxSet, hint: &str) -> &'a SyntaxReferen
     })
 }
 
-use super::page::{Page, Section, TocTree};
+use super::page::{Page, Section, TocTree, Metadata};
 use slab_tree::Tree;
 
 enum ParsingPhase<'a> {
@@ -37,14 +38,14 @@ impl ParseContext {
     }
 }
 
-pub fn parse(md: &str, parse_context: &ParseContext) -> Page {
+pub fn parse(md: &str, meta: &Metadata, parse_context: &ParseContext) -> Page {
     let theme = &parse_context.theme_set.themes["base16-ocean.dark"];
     let parser = Parser::new(&md);
     let mut out = String::new();
     let mut phase = ParsingPhase::Normal;
     let mut toc_tree = TocTree(Tree::new(Section {
-        link: "link".to_owned(),
-        title: "title".to_owned(),
+        link: meta.link.clone(),
+        title: meta.title.clone(),
         level: 0,
     }));
     let mut cur_section = toc_tree.0.root_mut().node_id();
@@ -90,8 +91,8 @@ pub fn parse(md: &str, parse_context: &ParseContext) -> Page {
                     .get_mut(cur_section)
                     .unwrap()
                     .append(Section {
-                        link: "".to_owned(),
-                        title: "title".to_owned(),
+                        link: String::new(),
+                        title: String::new(),
                         level,
                     })
                     .node_id();
@@ -102,6 +103,7 @@ pub fn parse(md: &str, parse_context: &ParseContext) -> Page {
                 phase = match phase {
                     ParsingPhase::Header(ref h) => {
                         toc.0.get_mut(cur_section).unwrap().data().title = h.clone();
+                        toc.0.get_mut(cur_section).unwrap().data().link = slugify(h);
                         ParsingPhase::Normal
                     }
                     _ => panic!("impossible phase"),
@@ -114,8 +116,6 @@ pub fn parse(md: &str, parse_context: &ParseContext) -> Page {
     }
     Page {
         toc: toc_tree,
-        title: "test".to_owned(),
-        slug: "test".to_owned(),
         content: out,
     }
 }
