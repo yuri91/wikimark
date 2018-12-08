@@ -2,6 +2,11 @@ let base_url = window.location.origin+"/";
 
 let simplemde = new SimpleMDE();
 
+window.addEventListener("beforeunload", function(ev) {
+	ev.preventDefault();
+	ev.returnValue = "Are you sure to exit the editor? All unsaved changes will be lost";
+});
+
 function download() {
 	let params = (new URL(document.location)).searchParams;
 	let page = params.get("page");
