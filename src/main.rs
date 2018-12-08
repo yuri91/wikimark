@@ -8,6 +8,16 @@ mod scss2css;
 mod state;
 mod templates;
 
+fn result_adapter<T: warp::Reply+'static, E: std::fmt::Display>(r: Result<T, E>) -> Result<T, warp::Rejection> {
+    match r {
+        Ok(t) => Ok(t),
+        Err(e) => {
+            log::error!("{}",e);
+            Err(warp::reject::custom(format!("{}", e)))
+        }
+    }
+}
+
 fn main() {
     std::env::set_var("RUST_LOG", "wikimark=info");
     pretty_env_logger::init();
@@ -18,12 +28,14 @@ fn main() {
     let index = warp::get2()
         .and(inject_state.clone())
         .and(warp::path::end())
-        .map(templates::index());
+        .map(templates::index())
+        .and_then(result_adapter);
 
     let page = warp::get2()
         .and(inject_state.clone())
         .and(path!("page" / String))
-        .map(templates::page());
+        .map(templates::page())
+        .and_then(result_adapter);
 
     let css = warp::get2()
         .and(path!("static" / "wiki.css"))
@@ -35,31 +47,26 @@ fn main() {
 
     let md = warp::get2()
         .and(path!("repo" / String))
-        .map(git::file_getter("repo"));
+        .map(git::file_getter("repo"))
+        .and_then(result_adapter);
 
     let all = warp::get2()
         .and(inject_state.clone())
         .and(path!("all"))
-        .map(templates::all());
+        .map(templates::all())
+        .and_then(result_adapter);
 
     let edit = warp::get2()
         .and(inject_state)
         .and(path!("edit"))
-        .map(templates::edit());
+        .map(templates::edit())
+        .and_then(result_adapter);
 
     let commit = warp::post2()
         .and(path!("commit"))
         .and(warp::body::json())
         .map(git::file_committer("repo"))
-        .map(|r| {
-            match r {
-                Ok(_) => warp::http::StatusCode::CREATED,
-                Err(e) => {
-                    log::error!("failed to commit file: {:?}", e);
-                    warp::http::StatusCode::INTERNAL_SERVER_ERROR
-                }
-            }
-        });
+        .and_then(result_adapter);
 
     let api = index
         .or(page)
