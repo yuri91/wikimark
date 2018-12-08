@@ -70,7 +70,7 @@ pub fn page_committer(repo_path: &str) -> impl Fn(String, CommitInfo) -> Result<
 
         let mut treebuilder = repo.treebuilder(Some(&tree))?;
         let blob = repo.blob(info.content.as_bytes())?;
-        treebuilder.insert(&format!("{}.md", link), blob, 0o100644)?;
+        treebuilder.insert(&format!("{}.md", link), blob, 0o100_644)?;
 
         let meta = super::page::Metadata {
             title: info.title,
@@ -88,9 +88,9 @@ pub fn page_committer(repo_path: &str) -> impl Fn(String, CommitInfo) -> Result<
             )?
             .as_ref(),
         )?;
-        metatreebuilder.insert(&format!("{}.json", meta.link), blob, 0o100644)?;
+        metatreebuilder.insert(&format!("{}.json", meta.link), blob, 0o100_644)?;
         let oid = metatreebuilder.write()?;
-        treebuilder.insert("meta", oid, 0o040000)?;
+        treebuilder.insert("meta", oid, 0o040_000)?;
 
         let oid = treebuilder.write()?;
         let newtree = repo.find_tree(oid)?;

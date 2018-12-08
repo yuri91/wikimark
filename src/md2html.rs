@@ -21,7 +21,7 @@ use slab_tree::Tree;
 
 enum ParsingPhase<'a> {
     Normal,
-    Code(HighlightLines<'a>),
+    Code(Box<HighlightLines<'a>>),
     Header(String),
 }
 
@@ -55,7 +55,7 @@ pub fn parse(md: &str, meta: &Metadata, parse_context: &ParseContext) -> Page {
         let parser = parser.map(move |event| match event {
             Event::Start(Tag::CodeBlock(ref info)) => {
                 let syntax = get_syntax_for_block(&parse_context.syntax_set, info);
-                let highlighter = HighlightLines::new(syntax, theme);
+                let highlighter = Box::new(HighlightLines::new(syntax, theme));
                 phase = ParsingPhase::Code(highlighter);
                 let snippet = start_highlighted_html_snippet(theme);
                 Event::Html(Owned(snippet.0))

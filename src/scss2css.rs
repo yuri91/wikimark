@@ -4,7 +4,7 @@ pub fn getter(path: &str) -> impl Fn() -> String + Clone {
     let css_opts = Options::default();
     let css = compile_file(path, css_opts).expect("scss file not found");
 
-    return move || {
-        return css.clone();
-    };
+    move || {
+        css.clone()
+    }
 }

@@ -48,6 +48,8 @@ impl std::error::Error for Error {
     }
 }
 
+//NOTE: this is needed because of a bug
+#[allow(dead_code)]
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub fn index() -> impl Fn(Arc<state::State>, Option<String>) -> Result<String> + Clone {
