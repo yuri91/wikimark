@@ -98,5 +98,5 @@ fn main() {
         .or(commit);
 
     let routes = api.with(warp::log("wikimark"));
-    warp::serve(routes).run(([127, 0, 0, 1], 8000));
+    warp::serve(routes).run(([127, 0, 0, 1], 4391));
 }
