@@ -19,6 +19,10 @@ download();
 function upload() {
 	let params = (new URL(document.location)).searchParams;
 	let title = document.getElementById("title").value;
+	if (!title) {
+		console.log("empty title not allowed");
+		return;
+	}
 	let content = simplemde.value();
 	let data =  {
 		title: title,
