@@ -59,9 +59,9 @@ fn transpose<T, E>(o: Option<std::result::Result<T, E>>) -> std::result::Result<
         None => Ok(None),
     }
 }
-pub fn page_committer(repo_path: &str) -> impl Fn(CommitInfo) -> Result<String> + Clone {
+pub fn page_committer(repo_path: &str) -> impl Fn(String, CommitInfo) -> Result<String> + Clone {
     let repo_path = repo_path.to_owned();
-    move |info| {
+    move |author, info| {
         let link = slugify(&info.title);
         let repo = get_repo(&repo_path)?;
 
@@ -95,13 +95,13 @@ pub fn page_committer(repo_path: &str) -> impl Fn(CommitInfo) -> Result<String> 
         let oid = treebuilder.write()?;
         let newtree = repo.find_tree(oid)?;
 
-        let sig = Signature::now("yuri", "yuri@test.com")?;
+        let sig = Signature::now(&author, &format!("{}@peori.space", author))?;
         let branch = repo.find_branch("master", git2::BranchType::Local)?;
         repo.commit(
             branch.get().name(),
             &sig,
             &sig,
-            "test commit message",
+            "Edited from web interface",
             &newtree,
             &[&branch.get().peel_to_commit()?],
         )?;

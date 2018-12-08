@@ -27,18 +27,30 @@ fn main() {
     std::env::set_var("RUST_LOG", "wikimark=info");
     pretty_env_logger::init();
 
+    let default_user = std::env::var("WIKIMARK_DEFAULT_USER").ok();
+
     let state = state::State::create("templates/**/*");
     let inject_state = warp::any().map(move || state.clone());
+    let get_user = warp::header::exact("X-SSL-AUTH", "SUCCESS")
+        .and(warp::header::<String>("X-IDENTITY").map(|i| Some(i)))
+        .or(warp::any().map(move || default_user.clone()))
+        .unify();
+    let require_user = get_user.clone().and_then(|u| match u {
+        Some(u) => Ok(u),
+        None => Err(warp::reject::custom("Must be logged in to commit")),
+    });
 
     let index = warp::get2()
         .and(inject_state.clone())
         .and(warp::path::end())
+        .and(get_user.clone())
         .map(templates::index())
         .and_then(result_adapter);
 
     let page = warp::get2()
         .and(inject_state.clone())
         .and(path!("page" / String))
+        .and(get_user.clone())
         .map(templates::page())
         .and_then(result_adapter);
 
@@ -59,17 +71,20 @@ fn main() {
     let all = warp::get2()
         .and(inject_state.clone())
         .and(path!("all"))
+        .and(get_user)
         .map(templates::all())
         .and_then(result_adapter);
 
     let edit = warp::get2()
         .and(inject_state)
         .and(path!("edit"))
+        .and(require_user.clone())
         .map(templates::edit())
         .and_then(result_adapter);
 
     let commit = warp::post2()
         .and(path!("commit"))
+        .and(require_user)
         .and(warp::body::json())
         .map(git::page_committer("repo"))
         .and_then(result_adapter);

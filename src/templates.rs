@@ -50,16 +50,19 @@ impl std::error::Error for Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub fn index() -> impl Fn(Arc<state::State>) -> Result<String> + Clone {
-    move |state| {
+pub fn index() -> impl Fn(Arc<state::State>, Option<String>) -> Result<String> + Clone {
+    move |state, user| {
         let state = state.clone();
-        let ctx = tera::Context::new();
+        let mut ctx = tera::Context::new();
+        if let Some(u) = user {
+            ctx.insert("user", &u);
+        }
         Ok(state.tera.render("index.html", &ctx)?)
     }
 }
 
-pub fn page() -> impl Fn(Arc<state::State>, String) -> Result<String> + Clone {
-    move |state, mut fname| {
+pub fn page() -> impl Fn(Arc<state::State>, String, Option<String>) -> Result<String> + Clone {
+    move |state, mut fname, user| {
         let metaname = format!("meta/{}.json", fname);
         fname.push_str(".md");
         let state = state.clone();
@@ -69,23 +72,30 @@ pub fn page() -> impl Fn(Arc<state::State>, String) -> Result<String> + Clone {
         let page = md2html::parse(&md, &meta, &state.parse_context);
         let mut ctx = tera::Context::new();
         ctx.insert("page", &page);
+        if let Some(u) = user {
+            ctx.insert("user", &u);
+        }
         Ok(state.tera.render("page.html", &ctx)?)
     }
 }
 
-pub fn all() -> impl Fn(Arc<state::State>) -> Result<String> + Clone {
-    move |state| {
+pub fn all() -> impl Fn(Arc<state::State>, Option<String>) -> Result<String> + Clone {
+    move |state, user| {
         let repo = git::get_repo("repo")?;
         let list = git::list_files("", &repo)?;
         let mut ctx = tera::Context::new();
         ctx.insert("pages", &list);
+        if let Some(u) = user {
+            ctx.insert("user", &u);
+        }
         Ok(state.tera.render("pages.html", &ctx)?)
     }
 }
 
-pub fn edit() -> impl Fn(Arc<state::State>) -> Result<String> + Clone {
-    move |state| {
-        let ctx = tera::Context::new();
+pub fn edit() -> impl Fn(Arc<state::State>, String) -> Result<String> + Clone {
+    move |state, user| {
+        let mut ctx = tera::Context::new();
+        ctx.insert("user", &user);
         Ok(state.tera.render("edit.html", &ctx)?)
     }
 }
