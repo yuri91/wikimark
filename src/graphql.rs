@@ -11,6 +11,9 @@ graphql_object!(Query: Context |&self| {
     field list(&executor) -> FieldResult<Vec<String>> {
         Ok(executor.context().executor_context.list("")?)
     }
+    field read(&executor, path: String) -> FieldResult<String> {
+        Ok(executor.context().executor_context.read(&path)?)
+    }
 });
 
 pub struct Mutation;
