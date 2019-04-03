@@ -65,6 +65,7 @@ fn main() {
         .configure(|app| {
             middleware::cors::Cors::for_app(app)
                 .allowed_origin("http://localhost:8888")
+                .allowed_origin("http://localhost:3000")
                 .supports_credentials()
                 .resource("/graphql", |r| r.method(http::Method::POST).with(graphql))
                 .resource("/graphiql", |r| r.method(http::Method::GET).h(graphiql))
