@@ -1,5 +1,6 @@
 use warp::path;
 use warp::Filter;
+use anyhow::Result;
 
 mod git;
 mod md2html;
@@ -23,13 +24,13 @@ fn json<T: serde::Serialize, E>() -> impl Fn(Result<T, E>) -> Result<String, E> 
     move |r| r.map(|t| serde_json::to_string(&t).expect("cannot serialize"))
 }
 
-fn main() {
+fn main() -> Result<()> {
     std::env::set_var("RUST_LOG", "wikimark=info");
     pretty_env_logger::init();
 
     let default_user = std::env::var("WIKIMARK_DEFAULT_USER").ok();
 
-    let state = state::State::create("templates/**/*");
+    let state = state::State::create("templates/**/*")?;
     let inject_state = warp::any().map(move || state.clone());
     let get_user = warp::header::<String>("X-Forwarded-User").map(Some)
         .or(warp::any().map(move || default_user.clone()))
@@ -99,4 +100,6 @@ fn main() {
 
     let routes = api.with(warp::log("wikimark"));
     warp::serve(routes).run(([127, 0, 0, 1], 4391));
+
+    Ok(())
 }
