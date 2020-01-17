@@ -43,12 +43,15 @@ pub fn parse(md: &str, meta: &Metadata, parse_context: &ParseContext) -> Page {
     let parser = Parser::new(&md);
     let mut out = String::new();
     let mut phase = ParsingPhase::Normal;
-    let mut toc_tree = TocTree(Tree::new(Section {
+    let mut tree = Tree::new();
+    tree.set_root(
+        Section {
         link: meta.link.clone(),
         title: meta.title.clone(),
         level: 0,
-    }));
-    let mut cur_section = toc_tree.0.root_mut().node_id();
+    });
+    let mut toc_tree = TocTree(tree);
+    let mut cur_section = toc_tree.0.root_mut().unwrap().node_id();
 
     {
         let toc = &mut toc_tree;

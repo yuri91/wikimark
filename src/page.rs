@@ -35,7 +35,7 @@ impl Serialize for TocTree {
     where
         S: Serializer,
     {
-        let root = self.0.root();
+        let root = self.0.root().unwrap();
         TocNode(&root).serialize(serializer)
     }
 }
