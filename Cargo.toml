@@ -5,7 +5,7 @@ authors = ["Yuri Iozzelli <y.iozzelli@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-pulldown-cmark = "0.2.0"
+pulldown-cmark = "0.6.1"
 syntect = "3.0.2"
 tera = "1.0.2"
 serde = "1.0.80"
