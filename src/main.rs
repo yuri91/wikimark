@@ -1,6 +1,6 @@
-use warp::Filter;
-use warp::path;
 use std::convert::Infallible;
+use warp::path;
+use warp::Filter;
 
 mod git;
 mod md2html;
@@ -11,34 +11,35 @@ mod templates;
 
 #[derive(Debug)]
 struct Unauthorized;
-impl warp::reject::Reject for Unauthorized {
-}
+impl warp::reject::Reject for Unauthorized {}
 
 async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, Infallible> {
-    Ok(warp::reply::with_status("ops", warp::http::StatusCode::INTERNAL_SERVER_ERROR))
+    Ok(warp::reply::with_status(
+        "ops",
+        warp::http::StatusCode::INTERNAL_SERVER_ERROR,
+    ))
 }
 
-async fn json<T: serde::Serialize>(r: T ) -> Result<impl warp::Reply, Infallible> {
+async fn json<T: serde::Serialize>(r: T) -> Result<impl warp::Reply, Infallible> {
     Ok(warp::reply::json(&r))
 }
 
-fn inject<T: Clone+Send>(obj: T) -> impl Filter<Extract=(T,), Error = Infallible> + Clone {
+fn inject<T: Clone + Send>(obj: T) -> impl Filter<Extract = (T,), Error = Infallible> + Clone {
     warp::any().map(move || obj.clone())
 }
 
-fn user_optional() -> impl Filter<Extract=(Option<String>,), Error = Infallible> + Clone {
+fn user_optional() -> impl Filter<Extract = (Option<String>,), Error = Infallible> + Clone {
     let default_user = std::env::var("WIKIMARK_DEFAULT_USER").ok();
 
-    warp::header::<String>("X-Forwarded-User").map(Some)
+    warp::header::<String>("X-Forwarded-User")
+        .map(Some)
         .or(warp::any().map(move || default_user.clone()))
         .unify()
 }
 
-fn user_required() -> impl Filter<Extract=(String,), Error = warp::Rejection> + Clone {
+fn user_required() -> impl Filter<Extract = (String,), Error = warp::Rejection> + Clone {
     user_optional()
-        .and_then(|u: Option<String>| async {
-            u.ok_or_else(|| warp::reject::custom(Unauthorized))
-        })
+        .and_then(|u: Option<String>| async { u.ok_or_else(|| warp::reject::custom(Unauthorized)) })
 }
 
 #[tokio::main]
@@ -71,7 +72,11 @@ async fn main() -> anyhow::Result<()> {
     let md = warp::get()
         .and(path!("repo" / String))
         .and(inject("repo"))
-        .and_then( |p, rp| async move { git::page_getter(p, rp).map_err(|e| warp::reject::custom(templates::Error::from(e))) })
+        .and_then(|p, rp| {
+            async move {
+                git::page_getter(p, rp).map_err(|e| warp::reject::custom(templates::Error::from(e)))
+            }
+        })
         .and_then(json);
 
     let all = warp::get()
@@ -93,7 +98,12 @@ async fn main() -> anyhow::Result<()> {
         .and(user_required())
         .and(warp::body::json::<git::CommitInfo>())
         .and(inject("repo"))
-        .and_then( |a, ci, rp| async move { git::page_committer(a, ci, rp).map_err(|e| warp::reject::custom(templates::Error::from(e))) })
+        .and_then(|a, ci, rp| {
+            async move {
+                git::page_committer(a, ci, rp)
+                    .map_err(|e| warp::reject::custom(templates::Error::from(e)))
+            }
+        })
         .and_then(json);
 
     let api = index

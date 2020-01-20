@@ -1,4 +1,5 @@
-use pulldown_cmark::{html, Event, Parser, Tag, CowStr};
+use once_cell::sync::Lazy;
+use pulldown_cmark::{html, CowStr, Event, Parser, Tag};
 use slug::slugify;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::ThemeSet;
@@ -6,7 +7,6 @@ use syntect::html::{
     start_highlighted_html_snippet, styled_line_to_highlighted_html, IncludeBackground,
 };
 use syntect::parsing::{SyntaxReference, SyntaxSet};
-use once_cell::sync::Lazy;
 
 fn get_syntax_for_block<'a>(set: &'a SyntaxSet, hint: &str) -> &'a SyntaxReference {
     set.find_syntax_by_name(hint).unwrap_or_else(|| {
@@ -45,8 +45,7 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
     let mut out = String::new();
     let mut phase = ParsingPhase::Normal;
     let mut tree = Tree::new();
-    tree.set_root(
-        Section {
+    tree.set_root(Section {
         link: meta.link.clone(),
         title: meta.title.clone(),
         level: 0,

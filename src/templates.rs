@@ -1,7 +1,7 @@
-use std::convert::From;
-use std::sync::Arc;
 use serde::Serialize;
 use serde_derive::Serialize;
+use std::convert::From;
+use std::sync::Arc;
 
 use warp::Filter;
 
@@ -55,11 +55,13 @@ impl std::error::Error for Error {
 }
 impl warp::reject::Reject for Error {}
 
-static TERA: Lazy<tera::Tera> = Lazy::new(|| {
-    tera::Tera::new("templates/**/*").expect("failed startup template parsing")
-});
+static TERA: Lazy<tera::Tera> =
+    Lazy::new(|| tera::Tera::new("templates/**/*").expect("failed startup template parsing"));
 
-pub async fn render<T: Serialize>(params: Result<T, Error>, template: &str) -> Result<String, warp::Rejection> {
+pub async fn render<T: Serialize>(
+    params: Result<T, Error>,
+    template: &str,
+) -> Result<String, warp::Rejection> {
     let result = || -> Result<String, Error> {
         let params = params?;
         let ctx = tera::Context::from_serialize(params)?;
@@ -74,9 +76,7 @@ pub struct Index {
 }
 impl Index {
     pub fn new(user: Option<String>) -> Result<Index, Error> {
-        Ok(Index {
-            user,
-        })
+        Ok(Index { user })
     }
 }
 
@@ -93,10 +93,7 @@ impl Page {
         let md = git::get_file(&fname, &repo)?;
         let meta = serde_json::from_str(&git::get_file(&metaname, &repo)?)?;
         let page = md2html::parse(&md, &meta);
-        Ok(Page {
-            page,
-            user,
-        })
+        Ok(Page { page, user })
     }
 }
 
@@ -109,10 +106,7 @@ impl Pages {
     pub fn new(user: Option<String>) -> Result<Pages, Error> {
         let repo = git::get_repo("repo")?;
         let pages = git::list_files("", &repo)?;
-        Ok(Pages {
-            pages,
-            user,
-        })
+        Ok(Pages { pages, user })
     }
 }
 
@@ -122,8 +116,6 @@ pub struct Edit {
 }
 impl Edit {
     pub fn new(user: String) -> Result<Edit, Error> {
-        Ok(Edit {
-            user,
-        })
+        Ok(Edit { user })
     }
 }

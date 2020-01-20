@@ -1,7 +1,7 @@
-use tera::Tera;
-use std::sync::Arc;
 use super::md2html::ParseContext;
 use anyhow::{Context, Result};
+use std::sync::Arc;
+use tera::Tera;
 
 pub struct State {
     pub parse_context: ParseContext,
