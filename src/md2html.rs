@@ -6,7 +6,7 @@ use syntect::html::{
     start_highlighted_html_snippet, styled_line_to_highlighted_html, IncludeBackground,
 };
 use syntect::parsing::{SyntaxReference, SyntaxSet};
-
+use once_cell::sync::Lazy;
 
 fn get_syntax_for_block<'a>(set: &'a SyntaxSet, hint: &str) -> &'a SyntaxReference {
     set.find_syntax_by_name(hint).unwrap_or_else(|| {
@@ -37,8 +37,10 @@ impl ParseContext {
     }
 }
 
-pub fn parse(md: &str, meta: &Metadata, parse_context: &ParseContext) -> Page {
-    let theme = &parse_context.theme_set.themes["base16-ocean.dark"];
+static PARSE_CONTEXT: Lazy<ParseContext> = Lazy::new(ParseContext::new);
+
+pub fn parse(md: &str, meta: &Metadata) -> Page {
+    let theme = &PARSE_CONTEXT.theme_set.themes["base16-ocean.dark"];
     let parser = Parser::new(&md);
     let mut out = String::new();
     let mut phase = ParsingPhase::Normal;
@@ -56,7 +58,7 @@ pub fn parse(md: &str, meta: &Metadata, parse_context: &ParseContext) -> Page {
         let toc = &mut toc_tree;
         let parser = parser.map(move |event| match event {
             Event::Start(Tag::CodeBlock(ref info)) => {
-                let syntax = get_syntax_for_block(&parse_context.syntax_set, info);
+                let syntax = get_syntax_for_block(&PARSE_CONTEXT.syntax_set, info);
                 let highlighter = Box::new(HighlightLines::new(syntax, theme));
                 phase = ParsingPhase::Code(highlighter);
                 let snippet = start_highlighted_html_snippet(theme);
@@ -68,7 +70,7 @@ pub fn parse(md: &str, meta: &Metadata, parse_context: &ParseContext) -> Page {
             }
             Event::Text(text) => match phase {
                 ParsingPhase::Code(ref mut highlighter) => {
-                    let ranges = highlighter.highlight(&text, &parse_context.syntax_set);
+                    let ranges = highlighter.highlight(&text, &PARSE_CONTEXT.syntax_set);
                     let h = styled_line_to_highlighted_html(&ranges[..], IncludeBackground::Yes);
                     Event::Html(CowStr::Boxed(h.into_boxed_str()))
                 }

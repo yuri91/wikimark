@@ -1,5 +1,11 @@
 use std::convert::From;
 use std::sync::Arc;
+use serde::Serialize;
+use serde_derive::Serialize;
+
+use warp::Filter;
+
+use once_cell::sync::Lazy;
 
 use super::git;
 use super::md2html;
@@ -47,57 +53,77 @@ impl std::error::Error for Error {
         None
     }
 }
+impl warp::reject::Reject for Error {}
 
-//NOTE: this is needed because of a bug
-#[allow(dead_code)]
-pub type Result<T> = std::result::Result<T, Error>;
+static TERA: Lazy<tera::Tera> = Lazy::new(|| {
+    tera::Tera::new("templates/**/*").expect("failed startup template parsing")
+});
 
-pub fn index() -> impl Fn(Arc<state::State>, Option<String>) -> Result<String> + Clone {
-    move |state, user| {
-        let state = state.clone();
-        let mut ctx = tera::Context::new();
-        if let Some(u) = user {
-            ctx.insert("user", &u);
-        }
-        Ok(state.tera.render("index.html", &ctx)?)
+pub async fn render<T: Serialize>(params: Result<T, Error>, template: &str) -> Result<String, warp::Rejection> {
+    let result = || -> Result<String, Error> {
+        let params = params?;
+        let ctx = tera::Context::from_serialize(params)?;
+        Ok(TERA.render(template, &ctx)?)
+    };
+    result().map_err(|e| warp::reject::custom(Error::from(e)))
+}
+
+#[derive(Serialize)]
+pub struct Index {
+    user: Option<String>,
+}
+impl Index {
+    pub fn new(user: Option<String>) -> Result<Index, Error> {
+        Ok(Index {
+            user,
+        })
     }
 }
 
-pub fn page() -> impl Fn(Arc<state::State>, String, Option<String>) -> Result<String> + Clone {
-    move |state, mut fname, user| {
+#[derive(Serialize)]
+pub struct Page {
+    page: super::page::Page,
+    user: Option<String>,
+}
+impl Page {
+    pub fn new(mut fname: String, user: Option<String>) -> Result<Page, Error> {
         let metaname = format!("meta/{}.json", fname);
         fname.push_str(".md");
-        let state = state.clone();
         let repo = git::get_repo("repo")?;
         let md = git::get_file(&fname, &repo)?;
         let meta = serde_json::from_str(&git::get_file(&metaname, &repo)?)?;
-        let page = md2html::parse(&md, &meta, &state.parse_context);
-        let mut ctx = tera::Context::new();
-        ctx.insert("page", &page);
-        if let Some(u) = user {
-            ctx.insert("user", &u);
-        }
-        Ok(state.tera.render("page.html", &ctx)?)
+        let page = md2html::parse(&md, &meta);
+        Ok(Page {
+            page,
+            user,
+        })
     }
 }
 
-pub fn all() -> impl Fn(Arc<state::State>, Option<String>) -> Result<String> + Clone {
-    move |state, user| {
+#[derive(Serialize)]
+pub struct Pages {
+    pages: Vec<super::page::Metadata>,
+    user: Option<String>,
+}
+impl Pages {
+    pub fn new(user: Option<String>) -> Result<Pages, Error> {
         let repo = git::get_repo("repo")?;
-        let list = git::list_files("", &repo)?;
-        let mut ctx = tera::Context::new();
-        ctx.insert("pages", &list);
-        if let Some(u) = user {
-            ctx.insert("user", &u);
-        }
-        Ok(state.tera.render("pages.html", &ctx)?)
+        let pages = git::list_files("", &repo)?;
+        Ok(Pages {
+            pages,
+            user,
+        })
     }
 }
 
-pub fn edit() -> impl Fn(Arc<state::State>, String) -> Result<String> + Clone {
-    move |state, user| {
-        let mut ctx = tera::Context::new();
-        ctx.insert("user", &user);
-        Ok(state.tera.render("edit.html", &ctx)?)
+#[derive(Serialize)]
+pub struct Edit {
+    user: String,
+}
+impl Edit {
+    pub fn new(user: String) -> Result<Edit, Error> {
+        Ok(Edit {
+            user,
+        })
     }
 }

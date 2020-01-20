@@ -1,6 +1,6 @@
-use warp::path;
 use warp::Filter;
-use anyhow::Result;
+use warp::path;
+use std::convert::Infallible;
 
 mod git;
 mod md2html;
@@ -9,85 +9,92 @@ mod scss2css;
 mod state;
 mod templates;
 
-fn result_adapter<T: warp::Reply + 'static, E: std::fmt::Display>(
-    r: Result<T, E>,
-) -> Result<T, warp::Rejection> {
-    match r {
-        Ok(t) => Ok(t),
-        Err(e) => {
-            log::error!("{}", e);
-            Err(warp::reject::custom(format!("{}", e)))
-        }
-    }
-}
-fn json<T: serde::Serialize, E>() -> impl Fn(Result<T, E>) -> Result<String, E> + Clone {
-    move |r| r.map(|t| serde_json::to_string(&t).expect("cannot serialize"))
+#[derive(Debug)]
+struct Unauthorized;
+impl warp::reject::Reject for Unauthorized {
 }
 
-fn main() -> Result<()> {
+async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, Infallible> {
+    Ok(warp::reply::with_status("ops", warp::http::StatusCode::INTERNAL_SERVER_ERROR))
+}
+
+async fn json<T: serde::Serialize>(r: T ) -> Result<impl warp::Reply, Infallible> {
+    Ok(warp::reply::json(&r))
+}
+
+fn inject<T: Clone+Send>(obj: T) -> impl Filter<Extract=(T,), Error = Infallible> + Clone {
+    warp::any().map(move || obj.clone())
+}
+
+fn user_optional() -> impl Filter<Extract=(Option<String>,), Error = Infallible> + Clone {
+    let default_user = std::env::var("WIKIMARK_DEFAULT_USER").ok();
+
+    warp::header::<String>("X-Forwarded-User").map(Some)
+        .or(warp::any().map(move || default_user.clone()))
+        .unify()
+}
+
+fn user_required() -> impl Filter<Extract=(String,), Error = warp::Rejection> + Clone {
+    user_optional()
+        .and_then(|u: Option<String>| async {
+            u.ok_or_else(|| warp::reject::custom(Unauthorized))
+        })
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     std::env::set_var("RUST_LOG", "wikimark=info");
     pretty_env_logger::init();
 
-    let default_user = std::env::var("WIKIMARK_DEFAULT_USER").ok();
-
-    let state = state::State::create("templates/**/*")?;
-    let inject_state = warp::any().map(move || state.clone());
-    let get_user = warp::header::<String>("X-Forwarded-User").map(Some)
-        .or(warp::any().map(move || default_user.clone()))
-        .unify();
-    let require_user = get_user.clone().and_then(|u| match u {
-        Some(u) => Ok(u),
-        None => Err(warp::reject::custom("Must be logged in to commit")),
-    });
-
-    let index = warp::get2()
-        .and(inject_state.clone())
+    let index = warp::get()
         .and(warp::path::end())
-        .and(get_user.clone())
-        .map(templates::index())
-        .and_then(result_adapter);
+        .and(user_optional())
+        .map(templates::Index::new)
+        .and(inject("index.html"))
+        .and_then(templates::render);
 
-    let page = warp::get2()
-        .and(inject_state.clone())
+    let page = warp::get()
         .and(path!("page" / String))
-        .and(get_user.clone())
-        .map(templates::page())
-        .and_then(result_adapter);
+        .and(user_optional())
+        .map(templates::Page::new)
+        .and(inject("page.html"))
+        .and_then(templates::render);
 
-    let css = warp::get2()
+    let css = warp::get()
         .and(path!("static" / "wiki.css"))
         .map(scss2css::getter("sass/wiki.scss"));
 
-    let statics = warp::get2()
+    let statics = warp::get()
         .and(path!("static"))
         .and(warp::fs::dir("static"));
 
-    let md = warp::get2()
+    let md = warp::get()
         .and(path!("repo" / String))
-        .map(git::page_getter("repo"))
-        .map(json())
-        .and_then(result_adapter);
+        .and(inject("repo"))
+        .and_then( |p, rp| async move { git::page_getter(p, rp).map_err(|e| warp::reject::custom(templates::Error::from(e))) })
+        .and_then(json);
 
-    let all = warp::get2()
-        .and(inject_state.clone())
+    let all = warp::get()
         .and(path!("all"))
-        .and(get_user)
-        .map(templates::all())
-        .and_then(result_adapter);
+        .and(user_optional())
+        .map(templates::Pages::new)
+        .and(inject("pages.html"))
+        .and_then(templates::render);
 
-    let edit = warp::get2()
-        .and(inject_state)
+    let edit = warp::get()
         .and(path!("edit"))
-        .and(require_user.clone())
-        .map(templates::edit())
-        .and_then(result_adapter);
+        .and(user_required())
+        .map(templates::Edit::new)
+        .and(inject("edit.html"))
+        .and_then(templates::render);
 
-    let commit = warp::post2()
+    let commit = warp::post()
         .and(path!("commit"))
-        .and(require_user)
-        .and(warp::body::json())
-        .map(git::page_committer("repo"))
-        .and_then(result_adapter);
+        .and(user_required())
+        .and(warp::body::json::<git::CommitInfo>())
+        .and(inject("repo"))
+        .and_then( |a, ci, rp| async move { git::page_committer(a, ci, rp).map_err(|e| warp::reject::custom(templates::Error::from(e))) })
+        .and_then(json);
 
     let api = index
         .or(page)
@@ -96,10 +103,11 @@ fn main() -> Result<()> {
         .or(md)
         .or(all)
         .or(edit)
-        .or(commit);
+        .or(commit)
+        .recover(handle_rejection);
 
     let routes = api.with(warp::log("wikimark"));
-    warp::serve(routes).run(([127, 0, 0, 1], 4391));
+    warp::serve(routes).run(([127, 0, 0, 1], 4391)).await;
 
     Ok(())
 }

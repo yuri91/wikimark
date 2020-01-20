@@ -36,15 +36,12 @@ pub fn list_files(path: &str, repo: &Repository) -> Result<Vec<Metadata>> {
         .collect())
 }
 
-pub fn page_getter(repo_path: &str) -> impl Fn(String) -> Result<RawPage> + Clone {
-    let repo_path = repo_path.to_owned();
-    move |path| {
-        let repo = get_repo(&repo_path)?;
-        let content = get_file(&format!("{}.md", path), &repo)?;
-        let meta = get_file(&format!("meta/{}.json", path), &repo)?;
-        let meta = serde_json::from_str(&meta).expect("invalid json");
-        Ok(RawPage { meta, content })
-    }
+pub fn page_getter(path: String, repo_path: &str) -> Result<RawPage> {
+    let repo = get_repo(&repo_path)?;
+    let content = get_file(&format!("{}.md", &path), &repo)?;
+    let meta = get_file(&format!("meta/{}.json", &path), &repo)?;
+    let meta = serde_json::from_str(&meta).expect("invalid json");
+    Ok(RawPage { meta, content })
 }
 
 #[derive(Deserialize, Debug)]
@@ -59,53 +56,50 @@ fn transpose<T, E>(o: Option<std::result::Result<T, E>>) -> std::result::Result<
         None => Ok(None),
     }
 }
-pub fn page_committer(repo_path: &str) -> impl Fn(String, CommitInfo) -> Result<String> + Clone {
-    let repo_path = repo_path.to_owned();
-    move |author, info| {
-        let link = slugify(&info.title);
-        let repo = get_repo(&repo_path)?;
+pub fn page_committer(author: String, info: CommitInfo, repo_path: &str) -> Result<String> {
+    let link = slugify(&info.title);
+    let repo = get_repo(&repo_path)?;
 
-        let obj = repo.revparse_single("master:")?;
-        let tree = obj.peel_to_tree()?;
+    let obj = repo.revparse_single("master:")?;
+    let tree = obj.peel_to_tree()?;
 
-        let mut treebuilder = repo.treebuilder(Some(&tree))?;
-        let blob = repo.blob(info.content.as_bytes())?;
-        treebuilder.insert(&format!("{}.md", link), blob, 0o100_644)?;
+    let mut treebuilder = repo.treebuilder(Some(&tree))?;
+    let blob = repo.blob(info.content.as_bytes())?;
+    treebuilder.insert(&format!("{}.md", link), blob, 0o100_644)?;
 
-        let meta = super::page::Metadata {
-            title: info.title,
-            link,
-        };
-        let blob = repo.blob(
-            serde_json::to_string(&meta)
-                .expect("cannot serialize")
-                .as_bytes(),
-        )?;
-        let mut metatreebuilder = repo.treebuilder(
-            transpose(
-                tree.get_name("meta")
-                    .map(|t| t.to_object(&repo).and_then(|t| t.peel_to_tree())),
-            )?
-            .as_ref(),
-        )?;
-        metatreebuilder.insert(&format!("{}.json", meta.link), blob, 0o100_644)?;
-        let oid = metatreebuilder.write()?;
-        treebuilder.insert("meta", oid, 0o040_000)?;
+    let meta = super::page::Metadata {
+        title: info.title,
+        link,
+    };
+    let blob = repo.blob(
+        serde_json::to_string(&meta)
+            .expect("cannot serialize")
+            .as_bytes(),
+    )?;
+    let mut metatreebuilder = repo.treebuilder(
+        transpose(
+            tree.get_name("meta")
+                .map(|t| t.to_object(&repo).and_then(|t| t.peel_to_tree())),
+        )?
+        .as_ref(),
+    )?;
+    metatreebuilder.insert(&format!("{}.json", meta.link), blob, 0o100_644)?;
+    let oid = metatreebuilder.write()?;
+    treebuilder.insert("meta", oid, 0o040_000)?;
 
-        let oid = treebuilder.write()?;
-        let newtree = repo.find_tree(oid)?;
+    let oid = treebuilder.write()?;
+    let newtree = repo.find_tree(oid)?;
 
-        let sig = Signature::now(&author, &format!("{}@peori.space", author))?;
-        let branch = repo.find_branch("master", git2::BranchType::Local)?;
-        repo.commit(
-            branch.get().name(),
-            &sig,
-            &sig,
-            "Edited from web interface",
-            &newtree,
-            &[&branch.get().peel_to_commit()?],
-        )?;
+    let sig = Signature::now(&author, &format!("{}@peori.space", author))?;
+    let branch = repo.find_branch("master", git2::BranchType::Local)?;
+    repo.commit(
+        branch.get().name(),
+        &sig,
+        &sig,
+        "Edited from web interface",
+        &newtree,
+        &[&branch.get().peel_to_commit()?],
+    )?;
 
-        Ok(meta.link)
-    }
+    Ok(meta.link)
 }
