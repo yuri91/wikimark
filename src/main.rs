@@ -6,14 +6,13 @@ mod git;
 mod md2html;
 mod page;
 mod scss2css;
-mod state;
 mod templates;
 
 #[derive(Debug)]
 struct Unauthorized;
 impl warp::reject::Reject for Unauthorized {}
 
-async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, Infallible> {
+async fn handle_rejection(_err: warp::Rejection) -> Result<impl warp::Reply, Infallible> {
     Ok(warp::reply::with_status(
         "ops",
         warp::http::StatusCode::INTERNAL_SERVER_ERROR,
