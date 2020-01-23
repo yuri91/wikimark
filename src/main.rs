@@ -13,7 +13,8 @@ mod templates;
 struct Unauthorized;
 impl warp::reject::Reject for Unauthorized {}
 
-async fn handle_rejection(_err: warp::Rejection) -> Result<impl warp::Reply, Infallible> {
+async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, Infallible> {
+    println!("{:?}", err);
     Ok(warp::reply::with_status(
         "ops",
         warp::http::StatusCode::INTERNAL_SERVER_ERROR,
@@ -34,11 +35,10 @@ fn user_required() -> impl Filter<Extract = (String,), Error = warp::Rejection> 
         .and_then(|u: Option<String>| async { u.ok_or_else(|| warp::reject::custom(Unauthorized)) })
 }
 
-async fn result_adapter<R: warp::Reply, E: warp::reject::Reject>(
+async fn result_adapter<R, E: warp::reject::Reject>(
     res: Result<R, E>,
-) -> Result<warp::reply::Response, warp::Rejection> {
-    res.map(warp::Reply::into_response)
-        .map_err(warp::reject::custom)
+) -> Result<R, warp::Rejection> {
+    res.map_err(warp::reject::custom)
 }
 
 #[tokio::main]
@@ -50,21 +50,22 @@ async fn main() -> anyhow::Result<()> {
         .and(user_optional())
         .and(warp::path::end())
         .map(templates::index)
-        .and_then(result_adapter);
+        .and_then(result_adapter)
+        .map(warp::reply::html);
 
     let page = warp::get()
         .and(user_optional())
         .and(path!("page" / String))
         .map(templates::page)
-        .and_then(result_adapter);
+        .and_then(result_adapter)
+        .map(warp::reply::html);
 
     let css = warp::get()
         .and(path!("static" / "wiki.css"))
-        .map(scss2css::getter("sass/wiki.scss"));
+        .map(scss2css::getter("sass/wiki.scss"))
+        .map(|css| warp::reply::with_header(css, "content-type", "text/css"));
 
-    let statics = warp::get()
-        .and(path!("static"))
-        .and(warp::fs::dir("static"));
+    let statics = warp::path("static").and(warp::fs::dir("static"));
 
     let md = warp::get()
         .and(path!("repo" / String))
@@ -79,13 +80,15 @@ async fn main() -> anyhow::Result<()> {
         .and(user_optional())
         .and(path!("all"))
         .map(templates::pages)
-        .and_then(result_adapter);
+        .and_then(result_adapter)
+        .map(warp::reply::html);
 
     let edit = warp::get()
         .and(user_required())
         .and(path!("edit"))
         .map(templates::edit)
-        .and_then(result_adapter);
+        .and_then(result_adapter)
+        .map(warp::reply::html);
 
     let commit = warp::post()
         .and(user_required())
