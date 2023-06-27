@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use pulldown_cmark::{html, CowStr, Event, Parser, Tag};
+use pulldown_cmark::{html, CowStr, Event, Parser, Tag, CodeBlockKind};
 use slug::slugify;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::ThemeSet;
@@ -57,6 +57,10 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
         let toc = &mut toc_tree;
         let parser = parser.map(move |event| match event {
             Event::Start(Tag::CodeBlock(ref info)) => {
+                let info = match info {
+                    CodeBlockKind::Indented => "",
+                    CodeBlockKind::Fenced(i) => &i,
+                };
                 let syntax = get_syntax_for_block(&PARSE_CONTEXT.syntax_set, info);
                 let highlighter = Box::new(HighlightLines::new(syntax, theme));
                 phase = ParsingPhase::Code(highlighter);
@@ -69,8 +73,8 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
             }
             Event::Text(text) => match phase {
                 ParsingPhase::Code(ref mut highlighter) => {
-                    let ranges = highlighter.highlight(&text, &PARSE_CONTEXT.syntax_set);
-                    let h = styled_line_to_highlighted_html(&ranges[..], IncludeBackground::Yes);
+                    let ranges = highlighter.highlight_line(&text, &PARSE_CONTEXT.syntax_set).unwrap();
+                    let h = styled_line_to_highlighted_html(&ranges[..], IncludeBackground::Yes).unwrap();
                     Event::Html(CowStr::Boxed(h.into_boxed_str()))
                 }
                 ParsingPhase::Header(ref mut h) => {
@@ -79,7 +83,7 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
                 }
                 ParsingPhase::Normal => Event::Text(text),
             },
-            Event::Start(Tag::Heading(level)) => {
+            Event::Start(Tag::Heading(level, _, _)) => {
                 let level = level as i32;
                 if level <= toc.0.get_mut(cur_section).unwrap().data().level {
                     cur_section = toc
@@ -103,7 +107,7 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
                 phase = ParsingPhase::Header(String::new());
                 event
             }
-            Event::End(Tag::Heading(_)) => {
+            Event::End(Tag::Heading(..)) => {
                 phase = match phase {
                     ParsingPhase::Header(ref h) => {
                         toc.0.get_mut(cur_section).unwrap().data().title = h.clone();
