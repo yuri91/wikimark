@@ -1,52 +1,63 @@
-use once_cell::sync::Lazy;
-
-use super::errors::Error;
 use super::git;
 use super::md2html;
+use super::page;
 
-static TERA: Lazy<tera::Tera> =
-    Lazy::new(|| tera::Tera::new("templates/**/*").expect("failed startup template parsing"));
+use askama::Template;
 
-pub fn index(user: Option<String>) -> Result<String, Error> {
-    let mut ctx = tera::Context::new();
+type Result<T> = std::result::Result<T, anyhow::Error>;
 
-    ctx.insert("user", &user);
-
-    Ok(TERA.render("index.html", &ctx)?)
+#[derive(Template)]
+#[template(path = "index.html")]
+pub struct Index<'a> {
+    user: Option<&'a str>,
+}
+impl<'a> Index<'a> {
+    pub fn new(user: Option<&'a str>) -> Index<'a> {
+        Index { user }
+    }
 }
 
-pub fn page(user: Option<String>, mut fname: String) -> Result<String, Error> {
-    let metaname = format!("meta/{}.json", fname);
-    fname.push_str(".md");
-    let repo = git::get_repo("repo")?;
-    let md = git::get_file(&fname, &repo)?;
-    let meta = serde_json::from_str(&git::get_file(&metaname, &repo)?)?;
-    let page = md2html::parse(&md, &meta);
-
-    let mut ctx = tera::Context::new();
-
-    ctx.insert("user", &user);
-    ctx.insert("page", &page);
-
-    Ok(TERA.render("page.html", &ctx)?)
+#[derive(Template)]
+#[template(path = "page.html")]
+pub struct Page<'a> {
+    user: Option<&'a str>,
+    page: page::Page,
 }
 
-pub fn pages(user: Option<String>) -> Result<String, Error> {
-    let repo = git::get_repo("repo")?;
-    let pages = git::list_files("", &repo)?;
-
-    let mut ctx = tera::Context::new();
-
-    ctx.insert("user", &user);
-    ctx.insert("pages", &pages);
-
-    Ok(TERA.render("pages.html", &ctx)?)
+impl<'a> Page<'a> {
+    pub fn new(user: Option<&'a str>, mut fname: String, repo: &git::Repo) -> Result<Page<'a>> {
+        let metaname = format!("meta/{}.json", fname);
+        fname.push_str(".md");
+        let md = repo.get_file(&fname)?;
+        let meta = serde_json::from_str(&repo.get_file(&metaname)?)?;
+        let page = md2html::parse(&md, &meta);
+        Ok(Page { user, page })
+    }
 }
 
-pub fn edit(user: String) -> Result<String, Error> {
-    let mut ctx = tera::Context::new();
-
-    ctx.insert("user", &user);
-
-    Ok(TERA.render("edit.html", &ctx)?)
+#[derive(Template)]
+#[template(path = "pages.html")]
+pub struct Pages<'a> {
+    user: Option<&'a str>,
+    pages: Vec<page::Metadata>,
 }
+
+impl<'a> Pages<'a> {
+    pub fn new(user: Option<&'a str>, repo: &git::Repo) -> Result<Pages<'a>> {
+        let pages = repo.list_files("")?;
+        Ok(Pages { user, pages })
+    }
+}
+
+#[derive(Template)]
+#[template(path = "edit.html")]
+pub struct Edit<'a> {
+    user: Option<&'a str>,
+}
+
+impl<'a> Edit<'a> {
+    pub fn new(user: &'a str) -> Edit<'a> {
+        Edit { user: Some(user) }
+    }
+}
+

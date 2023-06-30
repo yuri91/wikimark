@@ -1,8 +1,6 @@
-use sass_rs::{compile_file, Options};
+use sass_rs::{compile_string, Options};
 
-pub fn getter(path: &str) -> impl Fn() -> String + Clone {
+pub fn compile(scss: &str) -> String {
     let css_opts = Options::default();
-    let css = compile_file(path, css_opts).expect("scss file not found");
-
-    move || css.clone()
+    compile_string(scss, css_opts).expect("invalid scss syntax")
 }

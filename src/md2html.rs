@@ -1,4 +1,4 @@
-use once_cell::sync::Lazy;
+use std::sync::OnceLock;
 use pulldown_cmark::{html, CowStr, Event, Parser, Tag, CodeBlockKind};
 use slug::slugify;
 use syntect::easy::HighlightLines;
@@ -37,10 +37,11 @@ impl ParseContext {
     }
 }
 
-static PARSE_CONTEXT: Lazy<ParseContext> = Lazy::new(ParseContext::new);
+static PARSE_CONTEXT: OnceLock<ParseContext> = OnceLock::new();
 
 pub fn parse(md: &str, meta: &Metadata) -> Page {
-    let theme = &PARSE_CONTEXT.theme_set.themes["base16-ocean.dark"];
+    let parse_context = PARSE_CONTEXT.get_or_init(ParseContext::new);
+    let theme = &parse_context.theme_set.themes["base16-ocean.dark"];
     let parser = Parser::new(&md);
     let mut out = String::new();
     let mut phase = ParsingPhase::Normal;
@@ -61,7 +62,7 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
                     CodeBlockKind::Indented => "",
                     CodeBlockKind::Fenced(i) => &i,
                 };
-                let syntax = get_syntax_for_block(&PARSE_CONTEXT.syntax_set, info);
+                let syntax = get_syntax_for_block(&parse_context.syntax_set, info);
                 let highlighter = Box::new(HighlightLines::new(syntax, theme));
                 phase = ParsingPhase::Code(highlighter);
                 let snippet = start_highlighted_html_snippet(theme);
@@ -73,7 +74,7 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
             }
             Event::Text(text) => match phase {
                 ParsingPhase::Code(ref mut highlighter) => {
-                    let ranges = highlighter.highlight_line(&text, &PARSE_CONTEXT.syntax_set).unwrap();
+                    let ranges = highlighter.highlight_line(&text, &parse_context.syntax_set).unwrap();
                     let h = styled_line_to_highlighted_html(&ranges[..], IncludeBackground::Yes).unwrap();
                     Event::Html(CowStr::Boxed(h.into_boxed_str()))
                 }

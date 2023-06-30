@@ -4,30 +4,31 @@
 {% block content %}
 	<div class="title">
 		<h1>
-			{{ page.toc.title }}
+			{{ page.toc.root().title() }}
 			<a class="zola-anchor" href="#">🔗</a>
 		</h1>
 	</div>
 	<div class="content">
-		{{ page.content | safe }}
+		{{ page.content|safe }}
 	</div>
 {% endblock content %}
 
 {% block toolbar %}
-<a href="/edit?page={{ page.toc.link }}">EDIT <i class="icon-edit"></i></a>
+<a href="/edit?page={{ page.toc.root().link() }}">EDIT <i class="icon-edit"></i></a>
 {% endblock toolbar %}
 
 {% block toc %}
 	<h3> TABLE OF CONTENTS </h3>
 	<ul>
-		{% for h1 in page.toc.children %}
+		{% let root = page.toc.root() %}
+		{% for h1 in root.children() %}
 			<li>
-				<a href="{{h1.link | safe}}">{{ h1.title }}</a>
-				{% if h1.children %}
+				<a href="{{ h1.link()|safe }}">{{ h1.title() }}</a>
+				{% if !h1.children().is_empty() %}
 					<ul>
-						{% for h2 in h1.children %}
+						{% for h2 in h1.children() %}
 							<li>
-								<a href="{{h2.link | safe}}">{{ h2.title }}</a>
+								<a href="{{ h2.link()|safe }}">{{ h2.title() }}</a>
 							</li>
 						{% endfor %}
 					</ul>

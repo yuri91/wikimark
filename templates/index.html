@@ -24,13 +24,13 @@
 	<body>
 		<div id="grid">
 			<header>
-				{% if user %}
+				{% if user.is_some() %}
 				<div id="toolbar">
 				{% block toolbar %}
 				{% endblock toolbar %}
 				<a href="/edit">NEW <i class="icon-new"></i></a>
 				<span class="toolbar-divider"></span>
-				<span class="user">Hi {{user}}!<i class="icon-user"></i></span>
+				<span class="user">Hi {{user.unwrap()}}!<i class="icon-user"></i></span>
 				</div>
 				{% endif %}
 			</header>

@@ -1,13 +1,24 @@
-use thiserror::Error;
+use axum::{
+    response::{ Response, IntoResponse },
+    http::StatusCode,
+};
 
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error("Git error")]
-    Git(#[from] git2::Error),
-    #[error("Template error")]
-    Tera(#[from] tera::Error),
-    #[error("Serialization error")]
-    Json(#[from] serde_json::Error),
+#[derive(Debug)]
+pub struct AppError(anyhow::Error);
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Something went wrong: {}", self.0),
+        ).into_response()
+    }
 }
-
-impl warp::reject::Reject for Error {}
+impl<E> From<E> for AppError
+where
+    E: Into<anyhow::Error>,
+{
+    fn from(value: E) -> Self {
+        Self(value.into())
+    }
+}
