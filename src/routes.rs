@@ -78,7 +78,7 @@ pub async fn index(user: Option<UserHeader>) -> Html<String> {
 pub async fn page(State(state): State<Arc<WikiState>>, user: Option<UserHeader>, Path(fname): Path<String>) -> Result<Html<String>> {
     let repo = state.repo.lock().expect("error aquiring mutex");
     let user_str = user.as_ref().map(|u| u.0.0.as_str());
-    let ret = templates::Page::new(user_str, fname, &repo)?;
+    let ret = templates::Page::new(user_str, &fname, &repo)?;
     Ok(Html(ret.render().unwrap()))
 }
 
@@ -96,7 +96,7 @@ pub async fn edit(user: UserHeader) -> Result<Html<String>> {
 
 pub async fn md(State(state): State<Arc<WikiState>>, Path(page): Path<String>) -> Result<Json<page::RawPage>> {
     let repo = state.repo.lock().expect("error aquiring mutex");
-    let ret = repo.page_getter(page)?;
+    let ret = repo.page_getter(&page)?;
     Ok(Json(ret))
 }
 

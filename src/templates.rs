@@ -25,12 +25,9 @@ pub struct Page<'a> {
 }
 
 impl<'a> Page<'a> {
-    pub fn new(user: Option<&'a str>, mut fname: String, repo: &git::Repo) -> Result<Page<'a>> {
-        let metaname = format!("meta/{}.json", fname);
-        fname.push_str(".md");
-        let md = repo.get_file(&fname)?;
-        let meta = serde_json::from_str(&repo.get_file(&metaname)?)?;
-        let page = md2html::parse(&md, &meta);
+    pub fn new(user: Option<&'a str>, fname: &str, repo: &git::Repo) -> Result<Page<'a>> {
+        let md = repo.page_getter(fname)?;
+        let page = md2html::parse(&md.content, &md.meta);
         Ok(Page { user, page })
     }
 }

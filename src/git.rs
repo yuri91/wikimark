@@ -26,12 +26,8 @@ pub struct CommitInfo {
 }
 impl Repo {
     pub fn open(path: &str) -> Result<Repo> {
-        let repo = Repository::open_bare(path).or_else(|_| {
-            Repository::init_bare(path)
-        })?;
-        Ok(Repo {
-            repo
-        })
+        let repo = Repository::open_bare(path).or_else(|_| Repository::init_bare(path))?;
+        Ok(Repo { repo })
     }
 
     pub fn get_file(&self, path: &str) -> Result<String> {
@@ -40,26 +36,49 @@ impl Repo {
         let content = std::str::from_utf8(blob.content()).expect("not utf8");
         Ok(content.to_owned())
     }
+
+    fn parse_page(content: &str) -> Result<RawPage> {
+        if !content.starts_with("---") {
+            anyhow::bail!("missing YAML front matter");
+        }
+        let yaml = content.trim_start_matches("---");
+        let (yaml, md) = yaml
+            .split_once("---")
+            .ok_or_else(|| anyhow::anyhow!("malformed YAML front matter"))?;
+        let meta = serde_yaml::from_str(&yaml).expect("invalid YAML front matter");
+        Ok(RawPage {
+            meta,
+            content: md.to_owned(),
+        })
+    }
+    fn write_page(p: RawPage) -> Result<String> {
+        let mut ret = String::new();
+        ret.push_str("---\n");
+        let yaml = serde_yaml::to_string(&p.meta)?;
+        ret.push_str(&yaml);
+        ret.push_str("\n---\n");
+        ret.push_str(&p.content);
+        Ok(ret)
+    }
+
     pub fn list_files(&self, path: &str) -> Result<Vec<Metadata>> {
-        let obj = self.repo.revparse_single(&format!("master:meta{}", path))?;
+        let obj = self.repo.revparse_single(&format!("master:{}", path))?;
         let tree = obj.peel_to_tree()?;
         Ok(tree
             .iter()
             .map(|e| {
-                e.to_object(&self.repo).and_then(|o| o.peel_to_blob()).map(|b| {
-                    serde_json::from_str(std::str::from_utf8(b.content()).expect("not utf8"))
-                        .expect("not json")
-                })
+                e.to_object(&self.repo)
+                    .map_err(|e| anyhow::anyhow!(e))
+                    .and_then(|o| Ok(o.peel_to_blob()?))
+                    .and_then(|b| Ok(Self::parse_page(std::str::from_utf8(b.content())?)?.meta))
             })
             .filter_map(std::result::Result::ok)
             .collect())
     }
 
-    pub fn page_getter(&self, path: String) -> Result<RawPage> {
-        let content = self.get_file(&format!("{}.md", &path))?;
-        let meta = self.get_file(&format!("meta/{}.json", &path))?;
-        let meta = serde_json::from_str(&meta).expect("invalid json");
-        Ok(RawPage { meta, content })
+    pub fn page_getter(&self, path: &str) -> Result<RawPage> {
+        let content = self.get_file(&format!("{}.md", path))?;
+        Self::parse_page(&content)
     }
 
     pub fn page_committer(&self, author: String, info: CommitInfo) -> Result<String> {
@@ -68,29 +87,15 @@ impl Repo {
         let obj = self.repo.revparse_single("master:")?;
         let tree = obj.peel_to_tree()?;
 
-        let mut treebuilder = self.repo.treebuilder(Some(&tree))?;
-        let blob = self.repo.blob(info.content.as_bytes())?;
-        treebuilder.insert(&format!("{}.md", link), blob, 0o100_644)?;
-
-        let meta = super::page::Metadata {
+        let meta = Metadata {
             title: info.title,
-            link,
+            link: link.clone(),
         };
-        let blob = self.repo.blob(
-            serde_json::to_string(&meta)
-                .expect("cannot serialize")
-                .as_bytes(),
-        )?;
-        let mut metatreebuilder = self.repo.treebuilder(
-            transpose(
-                tree.get_name("meta")
-                    .map(|t| t.to_object(&self.repo).and_then(|t| t.peel_to_tree())),
-            )?
-            .as_ref(),
-        )?;
-        metatreebuilder.insert(&format!("{}.json", meta.link), blob, 0o100_644)?;
-        let oid = metatreebuilder.write()?;
-        treebuilder.insert("meta", oid, 0o040_000)?;
+        let page = RawPage { meta, content: info.content };
+        let content = Self::write_page(page)?;
+        let mut treebuilder = self.repo.treebuilder(Some(&tree))?;
+        let blob = self.repo.blob(content.as_bytes())?;
+        treebuilder.insert(&format!("{}.md", link), blob, 0o100_644)?;
 
         let oid = treebuilder.write()?;
         let newtree = self.repo.find_tree(oid)?;
@@ -106,6 +111,6 @@ impl Repo {
             &[&branch.get().peel_to_commit()?],
         )?;
 
-        Ok(meta.link)
+        Ok(link)
     }
 }
