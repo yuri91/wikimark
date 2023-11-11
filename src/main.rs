@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use tower_http::trace::{self, TraceLayer};
 use tracing::Level;
 use include_dir::{Dir, include_dir};
+use clap::Parser;
 
 mod errors;
 mod git;
@@ -17,6 +18,18 @@ mod templates;
 pub static STATIC_ASSETS: Dir = include_dir!("static");
 pub static CSS: &str = grass::include!("sass/wiki.scss");
 
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    #[arg(short, long, env="WIKIMARK_PORT", default_value="3000")]
+    port: u16,
+    #[arg(short, long, env="WIKIMARK_ADDR", default_value="127.0.0.1")]
+    address: String,
+    #[arg(short, long, env="WIKIMARK_REPO", default_value="repo")]
+    repo: String,
+}
+
 pub struct WikiState {
     pub repo: Mutex<git::Repo>,
 }
@@ -24,17 +37,15 @@ pub struct WikiState {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
+    let args = Args::parse();
     tracing_subscriber::fmt()
         .compact()
         .with_target(false)
         .with_env_filter(tracing_subscriber::EnvFilter::from_env("WIKIMARK_LOG"))
         .init();
 
-    let repo = std::env::var("WIKIMARK_REPO")
-        .ok()
-        .unwrap_or("repo".to_owned());
     let state = WikiState {
-        repo: Mutex::new(git::Repo::open(&repo)?),
+        repo: Mutex::new(git::Repo::open(&args.repo)?),
     };
     use routes::*;
     let app = Router::new()
@@ -53,7 +64,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .with_state(Arc::new(state));
 
-    axum::Server::bind(&"0.0.0.0:3000".parse()?)
+    axum::Server::bind(&format!("{}:{}", args.address, args.port).parse()?)
         .serve(app.into_make_service())
         .await?;
     Ok(())
