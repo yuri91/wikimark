@@ -27,7 +27,11 @@ pub struct Page<'a> {
 impl<'a> Page<'a> {
     pub fn new(user: Option<&'a str>, fname: &str, repo: &git::Repo) -> Result<Page<'a>> {
         let md = repo.page_getter(fname)?;
-        let page = md2html::parse(&md.content, &md.meta);
+        let page = if md.meta.private && user.is_none() {
+            md2html::parse("Access denied", &md.meta)
+        } else {
+            md2html::parse(&md.content, &md.meta)
+        };
         Ok(Page { user, page })
     }
 }

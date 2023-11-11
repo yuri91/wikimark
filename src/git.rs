@@ -23,6 +23,7 @@ pub struct Repo {
 pub struct CommitInfo {
     pub content: String,
     pub title: String,
+    pub private: bool,
 }
 impl Repo {
     pub fn open(path: &str) -> Result<Repo> {
@@ -90,6 +91,7 @@ impl Repo {
         let meta = Metadata {
             title: info.title,
             link: link.clone(),
+            private: info.private,
         };
         let page = RawPage { meta, content: info.content };
         let content = Self::write_page(page)?;

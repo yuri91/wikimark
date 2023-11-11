@@ -29,6 +29,8 @@ impl TocTree {
 pub struct Metadata {
     pub title: String,
     pub link: String,
+    #[serde(default)]
+    pub private: bool,
 }
 
 pub struct Page {

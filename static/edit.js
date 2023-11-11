@@ -17,6 +17,7 @@ function download() {
 		.then(md => {
 		simplemde.value(md.content);
 		document.getElementById("title").value = md.meta.title;
+		document.getElementById("private").checked = md.meta.private;
 	}).catch(e => console.log(e));
 }
 download();
@@ -24,6 +25,7 @@ download();
 function upload() {
 	let params = (new URL(document.location)).searchParams;
 	let title = document.getElementById("title").value;
+	let private = document.getElementById("private").checked;
 	if (!title) {
 		console.log("empty title not allowed");
 		return;
@@ -32,6 +34,7 @@ function upload() {
 	let data =  {
 		title: title,
 		content: content,
+		private: private,
 	};
 	fetch(base_url+"commit", {
 		method: "POST",
