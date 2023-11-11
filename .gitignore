@@ -1,3 +1,7 @@
 /target
 **/*.rs.bk
 /repo
+PKGBUILD
+result
+.envrc
+.direnv
