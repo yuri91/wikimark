@@ -33,6 +33,10 @@
         rust-build
       ];
     };
+    wikimark-arch = pkgs.runCommand "wikimark-arch" {} ''
+      mkdir -p $out/bin
+      patchelf --set-interpreter /lib/ld-linux-x86-64.so.2 --set-rpath /usr/lib/ --output $out/bin/wikimark ${wikimark}/bin/wikimark
+    '';
   in
   {
     devShell.${system} = pkgs.mkShell {
@@ -47,6 +51,9 @@
       ];
       RUST_SRC_PATH = "${rust-build}/lib/rustlib/src/rust/library";
     };
-    packages.${system}.default = wikimark;
+    packages.${system} = {
+      default = wikimark;
+      arch = wikimark-arch;
+    };
   };
 }
