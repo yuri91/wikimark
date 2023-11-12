@@ -2,11 +2,11 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use clap::Parser;
+use include_dir::{include_dir, Dir};
 use std::sync::{Arc, Mutex};
 use tower_http::trace::{self, TraceLayer};
 use tracing::Level;
-use include_dir::{Dir, include_dir};
-use clap::Parser;
 
 mod errors;
 mod git;
@@ -18,15 +18,14 @@ mod templates;
 pub static STATIC_ASSETS: Dir = include_dir!("static");
 pub static CSS: &str = grass::include!("sass/wiki.scss");
 
-
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    #[arg(short, long, env="WIKIMARK_PORT", default_value="3000")]
+    #[arg(short, long, env = "WIKIMARK_PORT", default_value = "3000")]
     port: u16,
-    #[arg(short, long, env="WIKIMARK_ADDR", default_value="127.0.0.1")]
+    #[arg(short, long, env = "WIKIMARK_ADDR", default_value = "127.0.0.1")]
     address: String,
-    #[arg(short, long, env="WIKIMARK_REPO", default_value="repo")]
+    #[arg(short, long, env = "WIKIMARK_REPO", default_value = "repo")]
     repo: String,
 }
 

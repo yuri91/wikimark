@@ -61,4 +61,3 @@ impl<'a> Edit<'a> {
         Edit { user: Some(user) }
     }
 }
-

@@ -1,6 +1,6 @@
-use std::sync::OnceLock;
-use pulldown_cmark::{html, CowStr, Event, Parser, Tag, CodeBlockKind};
+use pulldown_cmark::{html, CodeBlockKind, CowStr, Event, Parser, Tag};
 use slug::slugify;
+use std::sync::OnceLock;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::ThemeSet;
 use syntect::html::{
@@ -74,8 +74,11 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
             }
             Event::Text(text) => match phase {
                 ParsingPhase::Code(ref mut highlighter) => {
-                    let ranges = highlighter.highlight_line(&text, &parse_context.syntax_set).unwrap();
-                    let h = styled_line_to_highlighted_html(&ranges[..], IncludeBackground::Yes).unwrap();
+                    let ranges = highlighter
+                        .highlight_line(&text, &parse_context.syntax_set)
+                        .unwrap();
+                    let h = styled_line_to_highlighted_html(&ranges[..], IncludeBackground::Yes)
+                        .unwrap();
                     Some(Event::Html(CowStr::Boxed(h.into_boxed_str())))
                 }
                 ParsingPhase::Header(ref mut h) => {
@@ -112,16 +115,19 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
                 let mut cur_phase = ParsingPhase::Normal;
                 std::mem::swap(&mut cur_phase, &mut phase);
                 let h = match cur_phase {
-                    ParsingPhase::Header(h) => {
-                        h
-                    }
+                    ParsingPhase::Header(h) => h,
                     _ => panic!("impossible phase"),
                 };
                 let mut sec = toc.0.get_mut(cur_section).unwrap();
                 let data = sec.data();
                 data.link = slugify(&h);
                 data.title = h;
-                Some(Event::Html(CowStr::from(format!("<h{n} id=\"{id}\">{t} <a class=\"zola-anchor\" href=\"#{id}\">🔗</a></h{n}>", n=data.level, id=data.link, t=data.title))))
+                Some(Event::Html(CowStr::from(format!(
+                    "<h{n} id=\"{id}\">{t} <a class=\"zola-anchor\" href=\"#{id}\">🔗</a></h{n}>",
+                    n = data.level,
+                    id = data.link,
+                    t = data.title
+                ))))
             }
             _ => Some(event),
         });

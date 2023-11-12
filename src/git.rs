@@ -85,7 +85,10 @@ impl Repo {
             link: link.clone(),
             private: info.private,
         };
-        let page = RawPage { meta, content: info.content };
+        let page = RawPage {
+            meta,
+            content: info.content,
+        };
         let content = Self::write_page(page)?;
         let mut treebuilder = self.repo.treebuilder(Some(&tree))?;
         let blob = self.repo.blob(content.as_bytes())?;

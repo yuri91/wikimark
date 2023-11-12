@@ -1,6 +1,6 @@
 use axum::{
-    response::{ Response, IntoResponse },
     http::StatusCode,
+    response::{IntoResponse, Response},
 };
 
 #[derive(Debug)]
@@ -11,7 +11,8 @@ impl IntoResponse for AppError {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("Something went wrong: {}", self.0),
-        ).into_response()
+        )
+            .into_response()
     }
 }
 impl<E> From<E> for AppError
