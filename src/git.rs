@@ -38,7 +38,7 @@ impl Repo {
         let (yaml, md) = yaml
             .split_once("---")
             .ok_or_else(|| anyhow::anyhow!("malformed YAML front matter"))?;
-        let meta = serde_yaml::from_str(&yaml).expect("invalid YAML front matter");
+        let meta = serde_yaml::from_str(yaml).expect("invalid YAML front matter");
         Ok(RawPage {
             meta,
             content: md.to_owned(),

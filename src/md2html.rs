@@ -42,7 +42,7 @@ static PARSE_CONTEXT: OnceLock<ParseContext> = OnceLock::new();
 pub fn parse(md: &str, meta: &Metadata) -> Page {
     let parse_context = PARSE_CONTEXT.get_or_init(ParseContext::new);
     let theme = &parse_context.theme_set.themes["base16-ocean.dark"];
-    let parser = Parser::new(&md);
+    let parser = Parser::new(md);
     let mut out = String::new();
     let mut phase = ParsingPhase::Normal;
     let mut tree = Tree::new();
@@ -60,7 +60,7 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
             Event::Start(Tag::CodeBlock(ref info)) => {
                 let info = match info {
                     CodeBlockKind::Indented => "",
-                    CodeBlockKind::Fenced(i) => &i,
+                    CodeBlockKind::Fenced(i) => i,
                 };
                 let syntax = get_syntax_for_block(&parse_context.syntax_set, info);
                 let highlighter = Box::new(HighlightLines::new(syntax, theme));

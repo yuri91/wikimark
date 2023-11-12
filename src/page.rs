@@ -14,13 +14,13 @@ impl<'a> TocNode<'a> {
         self.0.data().level
     }
     pub fn children(&'a self) -> Vec<TocNode<'a>> {
-        self.0.children().map(|c| TocNode(c)).collect()
+        self.0.children().map(TocNode).collect()
     }
 }
 
 pub struct TocTree(pub Tree<Section>);
 impl TocTree {
-    pub fn root<'a>(&'a self) -> TocNode<'a> {
+    pub fn root(&self) -> TocNode<'_> {
         TocNode(self.0.root().unwrap())
     }
 }
