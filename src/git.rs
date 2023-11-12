@@ -7,14 +7,6 @@ use super::page::{Metadata, RawPage};
 pub use git2::Error;
 type Result<T> = std::result::Result<T, anyhow::Error>;
 
-fn transpose<T, E>(o: Option<std::result::Result<T, E>>) -> std::result::Result<Option<T>, E> {
-    match o {
-        Some(Ok(x)) => Ok(Some(x)),
-        Some(Err(e)) => Err(e),
-        None => Ok(None),
-    }
-}
-
 pub struct Repo {
     repo: Repository,
 }
