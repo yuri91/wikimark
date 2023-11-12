@@ -22,18 +22,22 @@
 	<ul>
 		{% let root = page.toc.root() %}
 		{% for h1 in root.children() %}
-			<li>
-				<a href="#{{ h1.link()|safe }}">{{ h1.title() }}</a>
-				{% if !h1.children().is_empty() %}
-					<ul>
-						{% for h2 in h1.children() %}
-							<li>
-								<a href="#{{ h2.link()|safe }}">{{ h2.title() }}</a>
-							</li>
-						{% endfor %}
-					</ul>
-				{% endif %}
-			</li>
+			{% if h1.level() == 1 %}
+				<li>
+					<a href="#{{ h1.link()|safe }}">{{ h1.title() }}</a>
+					{% if !h1.children().is_empty() %}
+						<ul>
+							{% for h2 in h1.children() %}
+								{% if h2.level() == 2 %}
+									<li>
+										<a href="#{{ h2.link()|safe }}">{{ h2.title() }}</a>
+									</li>
+								{% endif %}
+							{% endfor %}
+						</ul>
+					{% endif %}
+				</li>
+			{% endif %}
 		{% endfor %}
 		</ul>
 {% endblock toc %}
