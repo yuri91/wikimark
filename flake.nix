@@ -39,6 +39,7 @@
       packages = with pkgs; [
         git
         cargo-edit
+        cargo-watch
         rust-analyzer-unwrapped
       ];
       inputsFrom = with pkgs; [
