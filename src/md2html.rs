@@ -56,7 +56,7 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
 
     {
         let toc = &mut toc_tree;
-        let parser = parser.map(move |event| match event {
+        let parser = parser.filter_map(move |event| match event {
             Event::Start(Tag::CodeBlock(ref info)) => {
                 let info = match info {
                     CodeBlockKind::Indented => "",
@@ -66,25 +66,25 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
                 let highlighter = Box::new(HighlightLines::new(syntax, theme));
                 phase = ParsingPhase::Code(highlighter);
                 let snippet = start_highlighted_html_snippet(theme);
-                Event::Html(CowStr::Boxed(snippet.0.into_boxed_str()))
+                Some(Event::Html(CowStr::Boxed(snippet.0.into_boxed_str())))
             }
             Event::End(Tag::CodeBlock(_)) => {
                 phase = ParsingPhase::Normal;
-                Event::Html(CowStr::Borrowed("</pre>"))
+                Some(Event::Html(CowStr::Borrowed("</pre>")))
             }
             Event::Text(text) => match phase {
                 ParsingPhase::Code(ref mut highlighter) => {
                     let ranges = highlighter.highlight_line(&text, &parse_context.syntax_set).unwrap();
                     let h = styled_line_to_highlighted_html(&ranges[..], IncludeBackground::Yes).unwrap();
-                    Event::Html(CowStr::Boxed(h.into_boxed_str()))
+                    Some(Event::Html(CowStr::Boxed(h.into_boxed_str())))
                 }
                 ParsingPhase::Header(ref mut h) => {
                     h.push_str(&text);
-                    Event::Text(text)
+                    None
                 }
-                ParsingPhase::Normal => Event::Text(text),
+                ParsingPhase::Normal => Some(Event::Text(text)),
             },
-            Event::Start(Tag::Heading(level, _, _)) => {
+            Event::Start(Tag::Heading(level, ..)) => {
                 let level = level as i32;
                 if level <= toc.0.get_mut(cur_section).unwrap().data().level {
                     cur_section = toc
@@ -106,20 +106,24 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
                     })
                     .node_id();
                 phase = ParsingPhase::Header(String::new());
-                event
+                None
             }
             Event::End(Tag::Heading(..)) => {
-                phase = match phase {
-                    ParsingPhase::Header(ref h) => {
-                        toc.0.get_mut(cur_section).unwrap().data().title = h.clone();
-                        toc.0.get_mut(cur_section).unwrap().data().link = slugify(h);
-                        ParsingPhase::Normal
+                let mut cur_phase = ParsingPhase::Normal;
+                std::mem::swap(&mut cur_phase, &mut phase);
+                let h = match cur_phase {
+                    ParsingPhase::Header(h) => {
+                        h
                     }
                     _ => panic!("impossible phase"),
                 };
-                event
+                let mut sec = toc.0.get_mut(cur_section).unwrap();
+                let data = sec.data();
+                data.link = slugify(&h);
+                data.title = h;
+                Some(Event::Html(CowStr::from(format!("<h{n} id=\"{id}\">{t} <a class=\"zola-anchor\" href=\"#{id}\">🔗</a></h{n}>", n=data.level, id=data.link, t=data.title))))
             }
-            _ => event,
+            _ => Some(event),
         });
         html::push_html(&mut out, parser);
     }
