@@ -98,6 +98,16 @@ pub async fn pages(
     Ok(Html(ret.render().unwrap()))
 }
 
+pub async fn changelog(
+    State(state): State<Arc<WikiState>>,
+    user: Option<UserHeader>,
+) -> Result<Html<String>> {
+    let repo = state.repo.lock().expect("error aquiring mutex");
+    let user_str = user.as_ref().map(|u| u.0 .0.as_str());
+    let ret = templates::Changelog::new(user_str, &repo, &state.commit_url_prefix)?;
+    Ok(Html(ret.render().unwrap()))
+}
+
 pub async fn edit(user: UserHeader) -> Result<Html<String>> {
     let ret = templates::Edit::new(&user.0 .0);
     Ok(Html(ret.render().unwrap()))
@@ -116,10 +126,10 @@ pub async fn commit(
     State(state): State<Arc<WikiState>>,
     user: UserHeader,
     Json(info): Json<git::CommitInfo>,
-) -> Result<Html<String>> {
+) -> Result<String> {
     let repo = state.repo.lock().expect("error aquiring mutex");
     let ret = repo.page_committer(user.0 .0, info)?;
-    Ok(Html(ret))
+    Ok(ret)
 }
 
 pub async fn css() -> Css<String> {

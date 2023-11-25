@@ -50,6 +50,13 @@
 								<i class="icon-all-pages"></i> All Pages
 							</a>
 						</li>
+						{% if user.is_some() %}
+						<li>
+							<a href="/changelog">
+								<i class="icon-log"></i> Changelog
+							</a>
+						</li>
+						{% endif %}
 					</ul>
 				</div>
 				<div id="toc">

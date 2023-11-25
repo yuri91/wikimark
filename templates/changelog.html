@@ -1,0 +1,17 @@
+{% extends "index.html" %}
+
+
+{% block content %}
+	<div class="title">
+		<h1>
+			Changelog
+		</h1>
+	</div>
+	<div class="content">
+		<ul>
+		{% for l in log %}
+			<li><b>{{l.msg}}</b> by <i>{{l.author}}</i> [<a href="{{commit_url_prefix}}{{l.hash}}" target="_blank">view</a>]</li>
+		{% endfor %}
+		</ul>
+	</div>
+{% endblock content %}

@@ -51,6 +51,32 @@ impl<'a> Pages<'a> {
 }
 
 #[derive(Template)]
+#[template(path = "changelog.html")]
+pub struct Changelog<'a> {
+    user: Option<&'a str>,
+    log: Vec<git::CommitLog>,
+    commit_url_prefix: &'a str,
+}
+
+impl<'a> Changelog<'a> {
+    pub fn new(user: Option<&'a str>, repo: &git::Repo, commit_url_prefix: &'a str) -> Result<Changelog<'a>> {
+        if user.is_some() {
+            Ok(Changelog {
+                user,
+                log: repo.get_log()?,
+                commit_url_prefix,
+            })
+        } else {
+            Ok(Changelog {
+                user,
+                log: vec![],
+                commit_url_prefix,
+            })
+        }
+    }
+}
+
+#[derive(Template)]
 #[template(path = "edit.html")]
 pub struct Edit<'a> {
     user: Option<&'a str>,

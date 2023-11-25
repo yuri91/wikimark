@@ -27,10 +27,13 @@ struct Args {
     address: String,
     #[arg(short, long, env = "WIKIMARK_REPO", default_value = "repo")]
     repo: String,
+    #[arg(short, long, env = "WIKIMARK_COMMIT_URL_PREFIX", default_value = "")]
+    commit_url_prefix: String,
 }
 
 pub struct WikiState {
     pub repo: Mutex<git::Repo>,
+    pub commit_url_prefix: String,
 }
 
 #[tokio::main]
@@ -45,6 +48,7 @@ async fn main() -> anyhow::Result<()> {
 
     let state = WikiState {
         repo: Mutex::new(git::Repo::open(&args.repo)?),
+        commit_url_prefix: args.commit_url_prefix,
     };
     use routes::*;
     let app = Router::new()
@@ -56,6 +60,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/repo/:page", get(md))
         .route("/edit", get(edit))
         .route("/commit", post(commit))
+        .route("/changelog", get(changelog))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))

@@ -17,6 +17,14 @@ pub struct CommitInfo {
     pub title: String,
     pub private: bool,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct CommitLog {
+    pub msg: String,
+    pub author: String,
+    pub hash: String,
+}
+
 impl Repo {
     pub fn open(path: &str) -> Result<Repo> {
         let repo = Repository::open_bare(path).or_else(|_| Repository::init_bare(path))?;
@@ -81,7 +89,7 @@ impl Repo {
         let tree = obj.peel_to_tree()?;
 
         let meta = Metadata {
-            title: info.title,
+            title: info.title.clone(),
             link: link.clone(),
             private: info.private,
         };
@@ -103,11 +111,27 @@ impl Repo {
             branch.get().name(),
             &sig,
             &sig,
-            "Edited from web interface",
+            &format!("Edited `{}` from web", info.title),
             &newtree,
             &[&branch.get().peel_to_commit()?],
         )?;
 
         Ok(link)
+    }
+
+    pub fn get_log(&self) -> Result<Vec<CommitLog>> {
+        let mut walk = self.repo.revwalk()?;
+        walk.push_head()?;
+        let mut ret = Vec::new();
+        for oid in walk {
+            let commit = self.repo.find_commit(oid?)?;
+
+            ret.push(CommitLog {
+                author: commit.author().name().ok_or_else(|| anyhow::anyhow!("author not utf8"))?.to_owned(),
+                msg: commit.message().ok_or_else(|| anyhow::anyhow!("msg not utf8"))?.to_owned(),
+                hash: format!("{}", commit.id()),
+            });
+        }
+        Ok(ret)
     }
 }
