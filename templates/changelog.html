@@ -10,7 +10,7 @@
 	<div class="content">
 		<ul>
 		{% for l in log %}
-			<li><b>{{l.msg}}</b> by <i>{{l.author}}</i> [<a href="{{commit_url_prefix}}{{l.hash}}" target="_blank">view</a>]</li>
+		<li><b>{{l.msg}}</b> by <i>{{l.author}}</i> on <i>{{l.date}}</i> [<a href="{{commit_url_prefix}}{{l.hash}}" target="_blank">view</a>]</li>
 		{% endfor %}
 		</ul>
 	</div>

@@ -1,6 +1,7 @@
 use git2::{Repository, Signature};
 use serde_derive::Deserialize;
 use slug::slugify;
+use chrono::{FixedOffset, TimeZone};
 
 use super::page::{Metadata, RawPage};
 
@@ -23,6 +24,7 @@ pub struct CommitLog {
     pub msg: String,
     pub author: String,
     pub hash: String,
+    pub date: String,
 }
 
 impl Repo {
@@ -126,10 +128,16 @@ impl Repo {
         for oid in walk {
             let commit = self.repo.find_commit(oid?)?;
 
+            let time = commit.time();
+            let tz = FixedOffset::east_opt(time.offset_minutes()*60).ok_or_else(|| anyhow::anyhow!("wrong timezone offset"))?;
+            let date = tz.timestamp_opt(time.seconds(), 0).single().ok_or_else(|| anyhow::anyhow!("wrong timestamp"))?;
+            let date = date.to_rfc2822();
+
             ret.push(CommitLog {
                 author: commit.author().name().ok_or_else(|| anyhow::anyhow!("author not utf8"))?.to_owned(),
                 msg: commit.message().ok_or_else(|| anyhow::anyhow!("msg not utf8"))?.to_owned(),
                 hash: format!("{}", commit.id()),
+                date
             });
         }
         Ok(ret)
