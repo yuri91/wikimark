@@ -11,6 +11,17 @@
 
 		<link rel="icon" type="image/x-icon" href="/static/icons/favicon.ico">
 
+		<script>
+			function collapse()
+			{
+				const nav = document.getElementById("nav");
+				if (window.getComputedStyle(nav).display == "none") {
+					nav.style.display = "flex";
+				} else {
+					nav.style.display = "none";
+				}
+			}
+		</script>
 		{% block js %}
 		{% endblock js %}
 
@@ -24,52 +35,53 @@
 	</head>
 
 	<body>
-		<div id="grid">
+		<div id="content">
 			<header>
 				{% if user.is_some() %}
 				<div id="toolbar">
-				{% block toolbar %}
-				{% endblock toolbar %}
-				<a href="/edit">NEW <i class="icon-new"></i></a>
-				<span class="toolbar-divider"></span>
-				<span class="user">Hi {{user.unwrap()}}!<i class="icon-user"></i></span>
+					<a class="left" onclick="collapse()"><i class="icon-menu"></i></a>
+					{% block toolbar %}
+					{% endblock toolbar %}
+					<a href="/edit">NEW <i class="icon-new"></i></a>
+					<span class="toolbar-divider"></span>
+					<span class="user">Hi {{user.unwrap()}}!<i class="icon-user"></i></span>
 				</div>
 				{% endif %}
 			</header>
-			<nav>
-				<div id="links"> 
-					<h3> NAVIGATION </h3>
-					<ul>
-						<li>
-							<a href="/">
-								<i class="icon-home"></i> Home
-							</a>
-						</li>
-						<li>
-							<a href="/all">
-								<i class="icon-all-pages"></i> All Pages
-							</a>
-						</li>
-						{% if user.is_some() %}
-						<li>
-							<a href="/changelog">
-								<i class="icon-log"></i> Changelog
-							</a>
-						</li>
-						{% endif %}
-					</ul>
-				</div>
-				<div id="toc">
-					{% block toc %}
-					{% endblock toc %}
-				</div>
-			</nav>
-			<article>
-				{% block content %}
-				{% endblock content %}
-			</article>
-			<footer>
-			</footer>
+			<div id="main">
+				<nav id="nav">
+					<div id="links"> 
+						<h3> NAVIGATION </h3>
+						<ul>
+							<li>
+								<a href="/">
+									<i class="icon-home"></i> Home
+								</a>
+							</li>
+							<li>
+								<a href="/all">
+									<i class="icon-all-pages"></i> All Pages
+								</a>
+							</li>
+							{% if user.is_some() %}
+							<li>
+								<a href="/changelog">
+									<i class="icon-log"></i> Changelog
+								</a>
+							</li>
+							{% endif %}
+						</ul>
+					</div>
+					<div id="toc">
+						{% block toc %}
+						{% endblock toc %}
+					</div>
+				</nav>
+				<article>
+					{% block content %}
+					{% endblock content %}
+				</article>
+			</div>
 		</div>
 
 		{% block js_body %}

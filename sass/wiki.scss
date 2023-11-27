@@ -32,17 +32,32 @@ $nav-color: #263238;
 $nav-section-color: #37474f;
 $nav-text-color: #ffffff;
 $nav-selected-color: #4e6069;
-#grid {
+
+#content {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
 	header {
-		grid-area: header;
+		flex: 0 0 40px;
 		background-color: $header-color;
-		min-width: 0;
 		box-shadow: 0 0 5px rgba(0,0,0,0.3);
 	}
+}
+#main {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: row;
 	nav {
-		grid-area: nav;
 		background-color: $nav-color;
-		min-width: 0;
+		flex: 0 0 200px;
+		overflow: hidden;
+		flex-direction: column;
+		#links {
+		}
+		#toc {
+			flex: auto;
+		}
 		h3 {
 			background-color: $nav-section-color;
 			padding: 8px;
@@ -74,44 +89,54 @@ $nav-selected-color: #4e6069;
 		}
 	}
 	article {
-		grid-area: article;
-		min-width: 0;
+		flex: 1 1 auto;
+		min-height: 0;
 		overflow: auto;
+		overflow-wrap: break-word;
 	}
-	footer {
-		grid-area: footer;
-		background-color: $header-color;
-		min-width: 0;
-		box-shadow: 0 0 5px rgba(0,0,0,0.3);
-	}
-
-	display: grid;
-	grid-template-areas:
-		'header header'
-		'nav article'
-		'footer footer';
-	grid-template-columns: 200px auto;
-	grid-template-rows: 60px auto 60px;
-	height: 100%;
 }
+
 #toolbar {
 	display: flex;
 	flex-direction: row;
 	justify-content: flex-end;
+	align-items: stretch;
 
-	margin: 12px;
 	font-weight: bold;
 	a, .user {
+		padding: 7px;
 		text-decoration: none;
 		color: $nav-text-color;
-		padding-right: 12px;
-		padding-top: 4px;
+	}
+	a:hover {
+		background-color: $nav-selected-color;
 	}
 	.toolbar-divider {
-		border-left: 3px solid white;
+		border-left: 2px solid white;
 		height: 24px;
-		margin-top: 4px;
-		margin-right: 8px;
+		margin: 7px;
+	}
+	.left {
+		margin: 2px;
+		padding-left: 7px;
+		padding-right: 7px;
+		margin-right: auto;
+	}
+}
+
+@media only screen and (min-width: 600px) {
+	#main {
+		nav {
+		display: flex;
+		}
+	}
+}
+
+@media only screen and (max-width: 600px) {
+	#main {
+		nav {
+			display: none;
+		}
 	}
 }
 
