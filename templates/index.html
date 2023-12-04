@@ -11,6 +11,7 @@
 
 		<link rel="icon" type="image/x-icon" href="/static/icons/favicon.ico">
 
+		<script src="https://unpkg.com/htmx.org@1.9.9"></script>
 		<script>
 			function collapse()
 			{
@@ -34,7 +35,7 @@
 		{% endblock extra_head %}
 	</head>
 
-	<body>
+	<body hx-boost="true">
 		<div id="content">
 			<header>
 				{% if user.is_some() %}

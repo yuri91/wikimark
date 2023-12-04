@@ -69,7 +69,10 @@ async fn main() -> anyhow::Result<()> {
         .with_state(Arc::new(state));
 
     #[cfg(debug_assertions)]
-    let app = app.layer(tower_livereload::LiveReloadLayer::new());
+    let app = app.layer(tower_livereload::LiveReloadLayer::new()
+                        .request_predicate(|r: &axum::http::Request<axum::body::Body>| {
+                            r.headers().get("HX-Request").is_none()
+    }));
 
     axum::Server::bind(&format!("{}:{}", args.address, args.port).parse()?)
         .serve(app.into_make_service())
