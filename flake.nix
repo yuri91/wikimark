@@ -31,6 +31,7 @@
       ];
       nativeBuildInputs = with pkgs; [
         rust-build
+        zlib
       ];
     };
     wikimark-arch = pkgs.runCommand "wikimark-arch" {} ''
