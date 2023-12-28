@@ -1,27 +1,30 @@
 use serde_derive::{Deserialize, Serialize};
-use slab_tree::{NodeRef, Tree};
+use slab_tree::{Tree, RemoveBehavior};
 
-pub struct TocNode<'a>(NodeRef<'a, Section>);
-
-impl<'a> TocNode<'a> {
-    pub fn title(&self) -> &str {
-        &self.0.data().title
-    }
-    pub fn link(&self) -> &str {
-        &self.0.data().link
-    }
-    pub fn level(&self) -> i32 {
-        self.0.data().level
-    }
-    pub fn children(&'a self) -> Vec<TocNode<'a>> {
-        self.0.children().map(TocNode).collect()
-    }
+#[derive(Serialize, Deserialize, Default)]
+pub struct TocItem {
+    pub section: Section,
+    pub children: Vec<TocItem>,
 }
+pub struct Toc(pub TocItem);
 
-pub struct TocTree(pub Tree<Section>);
-impl TocTree {
-    pub fn root(&self) -> TocNode<'_> {
-        TocNode(self.0.root().unwrap())
+impl Toc {
+    pub fn new(mut tree: Tree<Section>) -> Toc {
+        let mut stack = vec![(tree.root_id().unwrap(), TocItem::default())];
+        while let Some((id, mut toc_it)) = stack.pop() {
+            let node = tree.get(id).unwrap();
+            if let Some(c) = node.children().next() {
+                stack.push((id, toc_it));
+                stack.push((c.node_id(), TocItem::default()));
+            } else {
+                toc_it.section = tree.remove(id, RemoveBehavior::OrphanChildren).unwrap();
+                if let Some((p_id, mut p_toc_it)) = stack.pop() {
+                    p_toc_it.children.push(toc_it);
+                    stack.push((p_id, p_toc_it));
+                }
+            }
+        }
+        Toc(stack.pop().unwrap().1)
     }
 }
 
@@ -34,10 +37,11 @@ pub struct Metadata {
 }
 
 pub struct Page {
-    pub toc: TocTree,
+    pub toc: Toc,
     pub content: String,
 }
 
+#[derive(Serialize, Deserialize, Default)]
 pub struct Section {
     pub link: String,
     pub title: String,

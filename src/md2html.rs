@@ -15,7 +15,7 @@ fn get_syntax_for_block<'a>(set: &'a SyntaxSet, hint: &str) -> &'a SyntaxReferen
     })
 }
 
-use super::page::{Metadata, Page, Section, TocTree};
+use super::page::{Metadata, Page, Section, Toc};
 use slab_tree::Tree;
 
 enum ParsingPhase<'a> {
@@ -45,14 +45,13 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
     let parser = Parser::new(md);
     let mut out = String::new();
     let mut phase = ParsingPhase::Normal;
-    let mut tree = Tree::new();
-    tree.set_root(Section {
+    let mut toc_tree = Tree::new();
+    toc_tree.set_root(Section {
         link: meta.link.clone(),
         title: meta.title.clone(),
         level: 0,
     });
-    let mut toc_tree = TocTree(tree);
-    let mut cur_section = toc_tree.0.root_mut().unwrap().node_id();
+    let mut cur_section = toc_tree.root_mut().unwrap().node_id();
 
     {
         let toc = &mut toc_tree;
@@ -89,9 +88,8 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
             },
             Event::Start(Tag::Heading(level, ..)) => {
                 let level = level as i32;
-                if level <= toc.0.get_mut(cur_section).unwrap().data().level {
+                if level <= toc.get_mut(cur_section).unwrap().data().level {
                     cur_section = toc
-                        .0
                         .get_mut(cur_section)
                         .unwrap()
                         .parent()
@@ -99,7 +97,6 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
                         .node_id();
                 }
                 cur_section = toc
-                    .0
                     .get_mut(cur_section)
                     .unwrap()
                     .append(Section {
@@ -118,7 +115,7 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
                     ParsingPhase::Header(h) => h,
                     _ => panic!("impossible phase"),
                 };
-                let mut sec = toc.0.get_mut(cur_section).unwrap();
+                let mut sec = toc.get_mut(cur_section).unwrap();
                 let data = sec.data();
                 data.link = slugify(&h);
                 data.title = h;
@@ -134,7 +131,7 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
         html::push_html(&mut out, parser);
     }
     Page {
-        toc: toc_tree,
+        toc: Toc::new(toc_tree),
         content: out,
     }
 }

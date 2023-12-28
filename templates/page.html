@@ -4,7 +4,7 @@
 {% block content %}
 	<div class="title">
 		<h1>
-			{{ page.toc.root().title() }}
+			{{ page.toc.0.section.title }}
 			<a class="zola-anchor" href="#">🔗</a>
 		</h1>
 	</div>
@@ -14,23 +14,22 @@
 {% endblock content %}
 
 {% block toolbar %}
-<a href="/edit?page={{ page.toc.root().link() }}">EDIT <i class="icon-edit"></i></a>
+<a href="/edit?page={{ page.toc.0.section.link }}">EDIT <i class="icon-edit"></i></a>
 {% endblock toolbar %}
 
 {% block toc %}
 	<h3> TABLE OF CONTENTS </h3>
 	<ul>
-		{% let root = page.toc.root() %}
-		{% for h1 in root.children() %}
-			{% if h1.level() == 1 %}
+		{% for h1 in page.toc.0.children %}
+			{% if h1.section.level == 1 %}
 				<li>
-					<a href="#{{ h1.link()|safe }}">{{ h1.title() }}</a>
-					{% if !h1.children().is_empty() %}
+					<a href="#{{ h1.section.link|safe }}">{{ h1.section.title }}</a>
+					{% if !h1.children.is_empty() %}
 						<ul>
-							{% for h2 in h1.children() %}
-								{% if h2.level() == 2 %}
+							{% for h2 in h1.children %}
+								{% if h2.section.level == 2 %}
 									<li>
-										<a href="#{{ h2.link()|safe }}">{{ h2.title() }}</a>
+										<a href="#{{ h2.section.link|safe }}">{{ h2.section.title }}</a>
 									</li>
 								{% endif %}
 							{% endfor %}
