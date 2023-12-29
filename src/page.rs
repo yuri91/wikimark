@@ -1,7 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 use slab_tree::{Tree, RemoveBehavior};
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct TocItem {
     pub section: Section,
     pub children: Vec<TocItem>,
@@ -21,6 +21,9 @@ impl Toc {
                 if let Some((p_id, mut p_toc_it)) = stack.pop() {
                     p_toc_it.children.push(toc_it);
                     stack.push((p_id, p_toc_it));
+                } else {
+                    stack.push((id, toc_it));
+                    break;
                 }
             }
         }
@@ -41,7 +44,7 @@ pub struct Page {
     pub content: String,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Section {
     pub link: String,
     pub title: String,
