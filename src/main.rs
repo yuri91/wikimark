@@ -7,7 +7,7 @@ use include_dir::{include_dir, Dir};
 use std::sync::{Arc, Mutex};
 use tower_http::trace::{self, TraceLayer};
 use tracing::Level;
-use minijinja::{Environment, path_loader};
+use minijinja::Environment;
 
 mod errors;
 mod git;
@@ -16,6 +16,7 @@ mod page;
 mod routes;
 
 pub static STATIC_ASSETS: Dir = include_dir!("static");
+pub static TEMPLATES: Dir = include_dir!("templates");
 pub static CSS: &str = grass::include!("sass/wiki.scss");
 
 #[derive(Parser, Debug)]
@@ -48,7 +49,9 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let mut env = Environment::new();
-    env.set_loader(path_loader("templates"));
+    for t in TEMPLATES.files() {
+        env.add_template(t.path().to_str().unwrap(), t.contents_utf8().unwrap()).unwrap();
+    }
     let state = WikiState {
         repo: Mutex::new(git::Repo::open(&args.repo)?),
         commit_url_prefix: args.commit_url_prefix,
