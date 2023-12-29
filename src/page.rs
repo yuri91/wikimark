@@ -6,6 +6,8 @@ pub struct TocItem {
     pub section: Section,
     pub children: Vec<TocItem>,
 }
+
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Toc(pub TocItem);
 
 impl Toc {

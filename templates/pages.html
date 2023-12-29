@@ -6,8 +6,8 @@
 		<li>
 			<a href="/page/{{ page.link }}">
 				{{ page.title }}
-				{% if page.private && user.is_none() %} 🔒
-				{% else if page.private %} 🔓
+				{% if page.private and not user %} 🔒
+				{% elif page.private %} 🔓
 				{% endif %}
 			</a>
 		</li>

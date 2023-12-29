@@ -1,5 +1,5 @@
 use git2::{Repository, Signature};
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use slug::slugify;
 use chrono::{FixedOffset, TimeZone};
 
@@ -19,7 +19,7 @@ pub struct CommitInfo {
     pub private: bool,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct CommitLog {
     pub msg: String,
     pub author: String,

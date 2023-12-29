@@ -7,13 +7,13 @@ use include_dir::{include_dir, Dir};
 use std::sync::{Arc, Mutex};
 use tower_http::trace::{self, TraceLayer};
 use tracing::Level;
+use minijinja::{Environment, path_loader};
 
 mod errors;
 mod git;
 mod md2html;
 mod page;
 mod routes;
-mod templates;
 
 pub static STATIC_ASSETS: Dir = include_dir!("static");
 pub static CSS: &str = grass::include!("sass/wiki.scss");
@@ -34,6 +34,7 @@ struct Args {
 pub struct WikiState {
     pub repo: Mutex<git::Repo>,
     pub commit_url_prefix: String,
+    pub env: Environment<'static>,
 }
 
 #[tokio::main]
@@ -46,9 +47,12 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter(tracing_subscriber::EnvFilter::from_env("WIKIMARK_LOG"))
         .init();
 
+    let mut env = Environment::new();
+    env.set_loader(path_loader("templates"));
     let state = WikiState {
         repo: Mutex::new(git::Repo::open(&args.repo)?),
         commit_url_prefix: args.commit_url_prefix,
+        env,
     };
     use routes::*;
     let app = Router::new()
@@ -64,7 +68,7 @@ async fn main() -> anyhow::Result<()> {
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
-                .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+                .on_response(trace::DefaultOnResponse::new().level(Level::INFO).latency_unit(tower_http::LatencyUnit::Micros)),
         )
         .with_state(Arc::new(state));
 

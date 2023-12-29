@@ -4,39 +4,41 @@
 {% block content %}
 	<div class="title">
 		<h1>
-			{{ page.toc.0.section.title }}
+			{{ toc.section.title }}
 			<a class="zola-anchor" href="#">🔗</a>
 		</h1>
 	</div>
-	<div class="content">
-		{{ page.content|safe }}
-	</div>
+	{% if not meta.private or user %}
+		<div class="content">
+			{{ content|safe }}
+		</div>
+	{% else %}
+		Access Denied
+	{% endif %}
 {% endblock content %}
 
 {% block toolbar %}
-<a href="/edit?page={{ page.toc.0.section.link }}">EDIT <i class="icon-edit"></i></a>
+<a href="/edit?page={{ toc.section.link }}">EDIT <i class="icon-edit"></i></a>
 {% endblock toolbar %}
 
 {% block toc %}
-	<h3> TABLE OF CONTENTS </h3>
-	<ul>
-		{% for h1 in page.toc.0.children %}
-			{% if h1.section.level == 1 %}
-				<li>
-					<a href="#{{ h1.section.link|safe }}">{{ h1.section.title }}</a>
-					{% if !h1.children.is_empty() %}
-						<ul>
-							{% for h2 in h1.children %}
-								{% if h2.section.level == 2 %}
-									<li>
-										<a href="#{{ h2.section.link|safe }}">{{ h2.section.title }}</a>
-									</li>
-								{% endif %}
-							{% endfor %}
-						</ul>
-					{% endif %}
-				</li>
-			{% endif %}
-		{% endfor %}
+	{% if not meta.private or user %}
+		<h3> TABLE OF CONTENTS </h3>
+		<ul>
+			{% for h in toc.children recursive %}
+				{% if h.section.level < 3 %}
+					<li>
+						<a href="#{{ h.section.link|safe }}">{{ h.section.title }}</a>
+						{% if h.children and loop.depth0 < 3 %}
+							<ul>
+								{{ loop(h.children) }}
+							</ul>
+						{% endif %}
+					</li>
+				{% endif %}
+			{% endfor %}
 		</ul>
+	{% else %}
+		Access Denied
+	{% endif %}
 {% endblock toc %}

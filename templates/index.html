@@ -38,14 +38,14 @@
 	<body hx-boost="true">
 		<div id="content">
 			<header>
-				{% if user.is_some() %}
+				{% if user %}
 				<div id="toolbar">
 					<a class="left" onclick="collapse()"><i class="icon-menu"></i></a>
 					{% block toolbar %}
 					{% endblock toolbar %}
 					<a href="/edit">NEW <i class="icon-new"></i></a>
 					<span class="toolbar-divider"></span>
-					<span class="user">Hi {{user.unwrap()}}!<i class="icon-user"></i></span>
+					<span class="user">Hi {{user}}!<i class="icon-user"></i></span>
 				</div>
 				{% endif %}
 			</header>
@@ -64,7 +64,7 @@
 									<i class="icon-all-pages"></i> All Pages
 								</a>
 							</li>
-							{% if user.is_some() %}
+							{% if user %}
 							<li>
 								<a href="/changelog">
 									<i class="icon-log"></i> Changelog

@@ -1,5 +1,5 @@
-use super::{errors, git, page, templates, WikiState};
-use askama::Template;
+use super::{errors, git, page, md2html, WikiState};
+use minijinja::context;
 use axum::{
     body::{Bytes, Full},
     extract::{Path, State, TypedHeader},
@@ -72,9 +72,10 @@ impl<T> From<T> for Css<T> {
 
 type UserHeader = TypedHeader<User>;
 
-pub async fn index(user: Option<UserHeader>) -> Html<String> {
+pub async fn index(State(state): State<Arc<WikiState>>, user: Option<UserHeader>) -> Html<String> {
+    let templ = state.env.get_template("index.html").unwrap();
     let user_str = user.as_ref().map(|u| u.0 .0.as_str());
-    Html(templates::Index::new(user_str).render().unwrap())
+    Html(templ.render(context!( user => user_str )).unwrap())
 }
 
 pub async fn page(
@@ -83,9 +84,16 @@ pub async fn page(
     Path(fname): Path<String>,
 ) -> Result<Html<String>> {
     let repo = state.repo.lock().expect("error aquiring mutex");
-    let user_str = user.as_ref().map(|u| u.0 .0.as_str());
-    let ret = templates::Page::new(user_str, &fname, &repo)?;
-    Ok(Html(ret.render().unwrap()))
+    let templ = state.env.get_template("page.html").unwrap();
+    let user_str = user.as_ref().map(|u| u.0.0.as_str());
+    let md = repo.page_getter(&fname)?;
+    let page = md2html::parse(&md.content, &md.meta);
+    Ok(Html(templ.render(context!(
+        user => user_str,
+        toc => page.toc,
+        meta => md.meta,
+        content => page.content,
+    ))?))
 }
 
 pub async fn pages(
@@ -93,9 +101,13 @@ pub async fn pages(
     user: Option<UserHeader>,
 ) -> Result<Html<String>> {
     let repo = state.repo.lock().expect("error aquiring mutex");
-    let user_str = user.as_ref().map(|u| u.0 .0.as_str());
-    let ret = templates::Pages::new(user_str, &repo)?;
-    Ok(Html(ret.render().unwrap()))
+    let templ = state.env.get_template("pages.html").unwrap();
+    let user_str = user.as_ref().map(|u| u.0.0.as_str());
+    let pages = repo.list_files("")?;
+    Ok(Html(templ.render(context!(
+        user => user_str,
+        pages,
+    ))?))
 }
 
 pub async fn changelog(
@@ -103,14 +115,21 @@ pub async fn changelog(
     user: Option<UserHeader>,
 ) -> Result<Html<String>> {
     let repo = state.repo.lock().expect("error aquiring mutex");
-    let user_str = user.as_ref().map(|u| u.0 .0.as_str());
-    let ret = templates::Changelog::new(user_str, &repo, &state.commit_url_prefix)?;
-    Ok(Html(ret.render().unwrap()))
+    let templ = state.env.get_template("changelog.html").unwrap();
+    let user_str = user.as_ref().map(|u| u.0.0.as_str());
+    Ok(Html(templ.render(context!(
+        user => user_str,
+        log => repo.get_log()?,
+        commit_url_prefix => state.commit_url_prefix,
+    ))?))
 }
 
-pub async fn edit(user: UserHeader) -> Result<Html<String>> {
-    let ret = templates::Edit::new(&user.0 .0);
-    Ok(Html(ret.render().unwrap()))
+pub async fn edit(State(state): State<Arc<WikiState>>, user: UserHeader) -> Result<Html<String>> {
+    let templ = state.env.get_template("edit.html").unwrap();
+    let user_str = user.0.0.as_str();
+    Ok(Html(templ.render(context!(
+        user => user_str,
+    ))?))
 }
 
 pub async fn md(
