@@ -1,8 +1,8 @@
 [package]
 name = "wikimark"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Yuri Iozzelli <y.iozzelli@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 pulldown-cmark = "0.9.3"
