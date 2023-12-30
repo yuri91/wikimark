@@ -9,7 +9,6 @@ pulldown-cmark = "0.9.3"
 syntect = "5.0.0"
 serde = "1.0.164"
 serde_derive = "1.0.164"
-git2 = { version = "0.17.2", features = ["vendored-libgit2"] , default-features = false}
 slab_tree = "0.3.2"
 slug = "0.1.4"
 anyhow = "1.0.71"
@@ -30,3 +29,4 @@ clap = { version = "4.4.8", features = ["derive", "env"] }
 tower-livereload = "0.8.2"
 chrono = "0.4.31"
 minijinja = { version = "1.0.10", features = ["loader"] }
+gix = "0.57.1"

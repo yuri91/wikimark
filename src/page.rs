@@ -1,5 +1,5 @@
 use serde_derive::{Deserialize, Serialize};
-use slab_tree::{Tree, RemoveBehavior};
+use slab_tree::{RemoveBehavior, Tree};
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct TocItem {

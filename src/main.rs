@@ -4,10 +4,10 @@ use axum::{
 };
 use clap::Parser;
 use include_dir::{include_dir, Dir};
+use minijinja::Environment;
 use std::sync::{Arc, Mutex};
 use tower_http::trace::{self, TraceLayer};
 use tracing::Level;
-use minijinja::Environment;
 
 mod errors;
 mod git;
@@ -50,7 +50,8 @@ async fn main() -> anyhow::Result<()> {
 
     let mut env = Environment::new();
     for t in TEMPLATES.files() {
-        env.add_template(t.path().to_str().unwrap(), t.contents_utf8().unwrap()).unwrap();
+        env.add_template(t.path().to_str().unwrap(), t.contents_utf8().unwrap())
+            .unwrap();
     }
     let state = WikiState {
         repo: Mutex::new(git::Repo::open(&args.repo)?),
@@ -71,15 +72,18 @@ async fn main() -> anyhow::Result<()> {
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
-                .on_response(trace::DefaultOnResponse::new().level(Level::INFO).latency_unit(tower_http::LatencyUnit::Micros)),
+                .on_response(
+                    trace::DefaultOnResponse::new()
+                        .level(Level::INFO)
+                        .latency_unit(tower_http::LatencyUnit::Micros),
+                ),
         )
         .with_state(Arc::new(state));
 
     #[cfg(debug_assertions)]
-    let app = app.layer(tower_livereload::LiveReloadLayer::new()
-                        .request_predicate(|r: &axum::http::Request<axum::body::Body>| {
-                            r.headers().get("HX-Request").is_none()
-    }));
+    let app = app.layer(tower_livereload::LiveReloadLayer::new().request_predicate(
+        |r: &axum::http::Request<axum::body::Body>| r.headers().get("HX-Request").is_none(),
+    ));
 
     axum::Server::bind(&format!("{}:{}", args.address, args.port).parse()?)
         .serve(app.into_make_service())

@@ -1,5 +1,4 @@
-use super::{errors, git, page, md2html, WikiState};
-use minijinja::context;
+use super::{errors, git, md2html, page, WikiState};
 use axum::{
     body::{Bytes, Full},
     extract::{Path, State, TypedHeader},
@@ -7,6 +6,7 @@ use axum::{
     response::{Html, IntoResponse, Response},
     Json,
 };
+use minijinja::context;
 use std::sync::Arc;
 
 type Result<T> = std::result::Result<T, errors::AppError>;
@@ -85,7 +85,7 @@ pub async fn page(
 ) -> Result<Html<String>> {
     let repo = state.repo.lock().expect("error aquiring mutex");
     let templ = state.env.get_template("page.html").unwrap();
-    let user_str = user.as_ref().map(|u| u.0.0.as_str());
+    let user_str = user.as_ref().map(|u| u.0 .0.as_str());
     let md = repo.page_getter(&fname)?;
     let page = md2html::parse(&md.content, &md.meta);
     Ok(Html(templ.render(context!(
@@ -102,7 +102,7 @@ pub async fn pages(
 ) -> Result<Html<String>> {
     let repo = state.repo.lock().expect("error aquiring mutex");
     let templ = state.env.get_template("pages.html").unwrap();
-    let user_str = user.as_ref().map(|u| u.0.0.as_str());
+    let user_str = user.as_ref().map(|u| u.0 .0.as_str());
     let pages = repo.list_files("")?;
     Ok(Html(templ.render(context!(
         user => user_str,
@@ -116,7 +116,7 @@ pub async fn changelog(
 ) -> Result<Html<String>> {
     let repo = state.repo.lock().expect("error aquiring mutex");
     let templ = state.env.get_template("changelog.html").unwrap();
-    let user_str = user.as_ref().map(|u| u.0.0.as_str());
+    let user_str = user.as_ref().map(|u| u.0 .0.as_str());
     Ok(Html(templ.render(context!(
         user => user_str,
         log => repo.get_log()?,
@@ -126,7 +126,7 @@ pub async fn changelog(
 
 pub async fn edit(State(state): State<Arc<WikiState>>, user: UserHeader) -> Result<Html<String>> {
     let templ = state.env.get_template("edit.html").unwrap();
-    let user_str = user.0.0.as_str();
+    let user_str = user.0 .0.as_str();
     Ok(Html(templ.render(context!(
         user => user_str,
     ))?))
