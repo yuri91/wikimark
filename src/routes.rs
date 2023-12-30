@@ -83,10 +83,9 @@ pub async fn page(
     user: Option<UserHeader>,
     Path(fname): Path<String>,
 ) -> Result<Html<String>> {
-    let repo = state.repo.lock().expect("error aquiring mutex");
     let templ = state.env.get_template("page.html").unwrap();
     let user_str = user.as_ref().map(|u| u.0 .0.as_str());
-    let md = repo.page_getter(&fname)?;
+    let md = state.repo.page_getter(&fname)?;
     let page = md2html::parse(&md.content, &md.meta);
     Ok(Html(templ.render(context!(
         user => user_str,
@@ -100,10 +99,9 @@ pub async fn pages(
     State(state): State<Arc<WikiState>>,
     user: Option<UserHeader>,
 ) -> Result<Html<String>> {
-    let repo = state.repo.lock().expect("error aquiring mutex");
     let templ = state.env.get_template("pages.html").unwrap();
     let user_str = user.as_ref().map(|u| u.0 .0.as_str());
-    let pages = repo.list_files("")?;
+    let pages = state.repo.list_files("")?;
     Ok(Html(templ.render(context!(
         user => user_str,
         pages,
@@ -114,12 +112,11 @@ pub async fn changelog(
     State(state): State<Arc<WikiState>>,
     user: Option<UserHeader>,
 ) -> Result<Html<String>> {
-    let repo = state.repo.lock().expect("error aquiring mutex");
     let templ = state.env.get_template("changelog.html").unwrap();
     let user_str = user.as_ref().map(|u| u.0 .0.as_str());
     Ok(Html(templ.render(context!(
         user => user_str,
-        log => repo.get_log()?,
+        log => state.repo.get_log()?,
         commit_url_prefix => state.commit_url_prefix,
     ))?))
 }
@@ -136,8 +133,7 @@ pub async fn md(
     State(state): State<Arc<WikiState>>,
     Path(page): Path<String>,
 ) -> Result<Json<page::RawPage>> {
-    let repo = state.repo.lock().expect("error aquiring mutex");
-    let ret = repo.page_getter(&page)?;
+    let ret = state.repo.page_getter(&page)?;
     Ok(Json(ret))
 }
 
@@ -146,8 +142,7 @@ pub async fn commit(
     user: UserHeader,
     Json(info): Json<git::CommitInfo>,
 ) -> Result<String> {
-    let repo = state.repo.lock().expect("error aquiring mutex");
-    let ret = repo.page_committer(user.0 .0, info)?;
+    let ret = state.repo.page_committer(user.0 .0, info)?;
     Ok(ret)
 }
 

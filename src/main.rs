@@ -5,7 +5,7 @@ use axum::{
 use clap::Parser;
 use include_dir::{include_dir, Dir};
 use minijinja::Environment;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tower_http::trace::{self, TraceLayer};
 use tracing::Level;
 
@@ -33,7 +33,7 @@ struct Args {
 }
 
 pub struct WikiState {
-    pub repo: Mutex<git::Repo>,
+    pub repo: git::Repo,
     pub commit_url_prefix: String,
     pub env: Environment<'static>,
 }
@@ -53,7 +53,7 @@ async fn main() -> anyhow::Result<()> {
         Ok(TEMPLATES.get_file(name).map(|f| f.contents_utf8().unwrap().to_owned()))
     });
     let state = WikiState {
-        repo: Mutex::new(git::Repo::open(&args.repo)?),
+        repo: git::Repo::open(&args.repo)?,
         commit_url_prefix: args.commit_url_prefix,
         env,
     };
