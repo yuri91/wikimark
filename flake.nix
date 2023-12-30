@@ -16,9 +16,11 @@
       inherit system;
       overlays = [ rust-overlay.overlays.default ];
     };
-    rust-build = pkgs.rust-bin.stable.latest.default.override {
+    CARGO_BUILD_TARGET = "x86_64-unknown-linux-musl";
+    CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static";
+    rust-build = pkgs.rust-bin.nightly.latest.default.override {
       extensions = [ "rust-src" ];
-      targets = [ ];
+      targets = [ CARGO_BUILD_TARGET ];
     };
     naersk-lib = naersk.lib.${system}.override {
       rustc = rust-build;
@@ -31,13 +33,13 @@
       ];
       nativeBuildInputs = with pkgs; [
         rust-build
-        zlib
+        pkgsStatic.stdenv.cc
       ];
+      release = false;
+      cargo_release = "--profile dist";
+      inherit CARGO_BUILD_TARGET;
+      inherit CARGO_BUILD_RUSTFLAGS;
     };
-    wikimark-arch = pkgs.runCommand "wikimark-arch" {} ''
-      mkdir -p $out/bin
-      patchelf --set-interpreter /lib/ld-linux-x86-64.so.2 --set-rpath /usr/lib/ --output $out/bin/wikimark ${wikimark}/bin/wikimark
-    '';
   in
   {
     devShell.${system} = pkgs.mkShell {
@@ -51,10 +53,11 @@
         wikimark
       ];
       RUST_SRC_PATH = "${rust-build}/lib/rustlib/src/rust/library";
+      inherit CARGO_BUILD_TARGET;
+      inherit CARGO_BUILD_RUSTFLAGS;
     };
     packages.${system} = {
       default = wikimark;
-      arch = wikimark-arch;
     };
   };
 }

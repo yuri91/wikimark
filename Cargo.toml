@@ -29,3 +29,9 @@ tower-livereload = "0.8.2"
 chrono = "0.4.31"
 minijinja = { version = "1.0.10", features = ["loader"] }
 gix = "0.57.1"
+
+[profile.dist]
+inherits = "release"
+strip = true
+lto = true
+codegen-units=1
