@@ -18,7 +18,7 @@
     };
     CARGO_BUILD_TARGET = "x86_64-unknown-linux-musl";
     CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static";
-    rust-build = pkgs.rust-bin.nightly.latest.default.override {
+    rust-build = pkgs.rust-bin.stable.latest.default.override {
       extensions = [ "rust-src" ];
       targets = [ CARGO_BUILD_TARGET ];
     };
