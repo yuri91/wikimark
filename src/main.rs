@@ -49,10 +49,9 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let mut env = Environment::new();
-    for t in TEMPLATES.files() {
-        env.add_template(t.path().to_str().unwrap(), t.contents_utf8().unwrap())
-            .unwrap();
-    }
+    env.set_loader(|name| {
+        Ok(TEMPLATES.get_file(name).map(|f| f.contents_utf8().unwrap().to_owned()))
+    });
     let state = WikiState {
         repo: Mutex::new(git::Repo::open(&args.repo)?),
         commit_url_prefix: args.commit_url_prefix,
