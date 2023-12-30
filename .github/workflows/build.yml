@@ -8,9 +8,18 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
-      - uses: DeterminateSystems/flake-checker-action@main
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - name: Setup nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Check flake
+        uses: DeterminateSystems/flake-checker-action@main
       - name: Run `nix build`
         run: nix build .
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: result/bin/wikimark
