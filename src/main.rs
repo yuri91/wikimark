@@ -48,12 +48,18 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter(tracing_subscriber::EnvFilter::from_env("WIKIMARK_LOG"))
         .init();
 
+    let repo = git::Repo::open(&args.repo)?;
     let mut env = Environment::new();
-    env.set_loader(|name| {
-        Ok(TEMPLATES.get_file(name).map(|f| f.contents_utf8().unwrap().to_owned()))
+    let env_repo = repo.clone();
+    env.set_loader(move |name| {
+        if let Ok(c) = env_repo.get_file(&format!("templates/{name}")) {
+            Ok(Some(c))
+        } else {
+            Ok(TEMPLATES.get_file(name).map(|f| f.contents_utf8().unwrap().to_owned()))
+        }
     });
     let state = WikiState {
-        repo: git::Repo::open(&args.repo)?,
+        repo,
         commit_url_prefix: args.commit_url_prefix,
         env,
     };

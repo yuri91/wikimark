@@ -8,6 +8,7 @@ use super::page::{Metadata, RawPage};
 
 type Result<T> = std::result::Result<T, anyhow::Error>;
 
+#[derive(Clone)]
 pub struct Repo {
     repo: ThreadSafeRepository,
 }
@@ -74,13 +75,23 @@ impl Repo {
     }
 
     pub fn list_files(&self, path: &str) -> Result<Vec<Metadata>> {
+        use gix::objs::tree::EntryKind;
         let repo = self.repo.to_thread_local();
         let tree = Self::get_tree(&repo, path)?;
         let mut ret = vec![];
         for e in tree.iter() {
-            let obj = e?.object()?;
-            let blob = obj.peel_to_kind(object::Kind::Blob)?;
-            ret.push(Self::parse_page(std::str::from_utf8(&blob.data)?)?.meta);
+            let e = e?;
+            match e.mode().kind() {
+                EntryKind::Blob => {
+                    let obj = e.object()?;
+                    let blob = obj.peel_to_kind(object::Kind::Blob)?;
+                    ret.push(Self::parse_page(std::str::from_utf8(&blob.data)?)?.meta);
+                }
+                EntryKind::Tree => {
+                }
+                _ => {
+                }
+            }
         }
         Ok(ret)
     }
