@@ -1,5 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 use slab_tree::{RemoveBehavior, Tree};
+use serde_yaml::Value;
+use std::collections::BTreeMap;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct TocItem {
@@ -38,6 +40,8 @@ pub struct Metadata {
     pub title: String,
     #[serde(default)]
     pub private: bool,
+    #[serde(flatten)]
+    pub other: BTreeMap<String, Value>,
 }
 
 pub struct Page {
