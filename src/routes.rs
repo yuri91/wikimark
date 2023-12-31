@@ -1,4 +1,4 @@
-use super::{errors, git, md2html, page, WikiState};
+use super::{errors, md2html, page, WikiState};
 use axum::{
     body::{Bytes, Full},
     extract::{Path, State, TypedHeader},
@@ -140,7 +140,7 @@ pub async fn md(
 pub async fn commit(
     State(state): State<Arc<WikiState>>,
     user: UserHeader,
-    Json(info): Json<git::CommitInfo>,
+    Json(info): Json<page::RawPage>,
 ) -> Result<String> {
     let ret = state.repo.page_committer(user.0 .0, info)?;
     Ok(ret)

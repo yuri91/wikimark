@@ -47,7 +47,7 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
     let mut phase = ParsingPhase::Normal;
     let mut toc_tree = Tree::new();
     toc_tree.set_root(Section {
-        link: meta.link.clone(),
+        link: "".to_owned(),
         title: meta.title.clone(),
         level: 0,
     });

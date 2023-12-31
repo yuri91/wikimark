@@ -33,10 +33,9 @@ impl Toc {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Metadata {
     pub title: String,
-    pub link: String,
     #[serde(default)]
     pub private: bool,
 }
@@ -53,7 +52,7 @@ pub struct Section {
     pub level: i32,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct RawPage {
     pub meta: Metadata,
     pub content: String,

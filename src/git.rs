@@ -12,13 +12,6 @@ pub struct Repo {
     repo: ThreadSafeRepository,
 }
 
-#[derive(Deserialize, Debug)]
-pub struct CommitInfo {
-    pub content: String,
-    pub title: String,
-    pub private: bool,
-}
-
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CommitLog {
     pub msg: String,
@@ -70,7 +63,7 @@ impl Repo {
             content: md.to_owned(),
         })
     }
-    fn write_page(p: RawPage) -> Result<String> {
+    fn write_page(p: &RawPage) -> Result<String> {
         let mut ret = String::new();
         ret.push_str("---\n");
         let yaml = serde_yaml::to_string(&p.meta)?;
@@ -97,18 +90,9 @@ impl Repo {
         Self::parse_page(&content)
     }
 
-    pub fn page_committer(&self, author: String, info: CommitInfo) -> Result<String> {
-        let link = slugify(&info.title);
-        let meta = Metadata {
-            title: info.title.clone(),
-            link: link.clone(),
-            private: info.private,
-        };
-        let page = RawPage {
-            meta,
-            content: info.content,
-        };
-        let content = Self::write_page(page)?;
+    pub fn page_committer(&self, author: String, page: RawPage) -> Result<String> {
+        let link = slugify(&page.meta.title);
+        let content = Self::write_page(&page)?;
 
         let repo = self.repo.to_thread_local();
         let tree = Self::get_tree(&repo, "")?;
@@ -131,7 +115,7 @@ impl Repo {
             &sig,
             &sig,
             branch.name().as_bstr(),
-            &format!("Edited `{}` from web", info.title),
+            &format!("Edited `{}` from web", page.meta.title),
             newtree.id,
             Some(parent),
         )
