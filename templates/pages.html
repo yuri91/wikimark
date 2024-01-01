@@ -5,10 +5,12 @@
 	{% for page in pages %}
 		<li>
 			<a href="/page/{{ page.link }}">
-				{{ page.title }}
-				{% if page.private and not user %} 🔒
-				{% elif page.private %} 🔓
+				{% if page.meta.private and not user %} 🔒
+				{% elif page.meta.private %} 🔓
 				{% endif %}
+				{% if page.link[-1] == "/" %} 📁
+				{% endif %}
+				{{ page.meta.title }}
 			</a>
 		</li>
 	{% endfor %}

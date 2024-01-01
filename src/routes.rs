@@ -81,17 +81,28 @@ pub async fn index(State(state): State<Arc<WikiState>>, user: Option<UserHeader>
 pub async fn page(
     State(state): State<Arc<WikiState>>,
     user: Option<UserHeader>,
-    Path(fname): Path<String>,
+    fname: Option<Path<String>>,
 ) -> Result<Html<String>> {
-    let templ = state.env.get_template("page.html").unwrap();
+    let repo = state.repo.local();
+    let fname = fname.unwrap_or_else(|| Path("".to_owned())).0;
+    let is_dir = fname.ends_with('/') || fname.is_empty();
+    let templ_file = if is_dir { "dir.html" } else { "page.html" };
+    let entries = if is_dir {
+        Some(page::list_files(&repo, &fname, false)?)
+    } else {
+        None
+    };
+    let templ = state.env.get_template(templ_file).unwrap();
     let user_str = user.as_ref().map(|u| u.0 .0.as_str());
-    let md = state.repo.page_getter(&fname)?;
+    let md = page::get_page(&repo, &fname)?;
     let page = md2html::parse(&md.content, &md.meta);
     Ok(Html(templ.render(context!(
         user => user_str,
         toc => page.toc,
         meta => md.meta,
         content => page.content,
+        link => fname,
+        children => entries,
     ))?))
 }
 
@@ -101,7 +112,7 @@ pub async fn pages(
 ) -> Result<Html<String>> {
     let templ = state.env.get_template("pages.html").unwrap();
     let user_str = user.as_ref().map(|u| u.0 .0.as_str());
-    let pages = state.repo.list_files("")?;
+    let pages = page::list_files(&state.repo.local(), "", true)?;
     Ok(Html(templ.render(context!(
         user => user_str,
         pages,
@@ -116,7 +127,7 @@ pub async fn changelog(
     let user_str = user.as_ref().map(|u| u.0 .0.as_str());
     Ok(Html(templ.render(context!(
         user => user_str,
-        log => state.repo.get_log()?,
+        log => state.repo.local().get_log()?,
         commit_url_prefix => state.commit_url_prefix,
     ))?))
 }
@@ -131,18 +142,19 @@ pub async fn edit(State(state): State<Arc<WikiState>>, user: UserHeader) -> Resu
 
 pub async fn md(
     State(state): State<Arc<WikiState>>,
-    Path(page): Path<String>,
+    page: Option<Path<String>>,
 ) -> Result<Json<page::RawPage>> {
-    let ret = state.repo.page_getter(&page)?;
+    let page = page.unwrap_or_else(|| Path("".to_owned())).0;
+    let ret = page::get_page(&state.repo.local(), &page)?;
     Ok(Json(ret))
 }
 
 pub async fn commit(
     State(state): State<Arc<WikiState>>,
     user: UserHeader,
-    Json(info): Json<page::RawPage>,
+    Json(info): Json<page::PageUpdate>,
 ) -> Result<String> {
-    let ret = state.repo.page_committer(user.0 .0, info)?;
+    let ret = page::commit_page(&state.repo.local(), user.0 .0, info)?;
     Ok(ret)
 }
 

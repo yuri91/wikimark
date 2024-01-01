@@ -1,16 +1,18 @@
 use chrono::{FixedOffset, TimeZone};
 use gix::{actor::Signature, create, object, Repository, ThreadSafeRepository, Tree};
 use serde_derive::{Deserialize, Serialize};
-use slug::slugify;
 use std::path::Path;
-
-use super::page::{Metadata, RawPage};
 
 type Result<T> = std::result::Result<T, anyhow::Error>;
 
 #[derive(Clone)]
-pub struct Repo {
+pub struct ThreadSafeRepo {
     repo: ThreadSafeRepository,
+}
+
+#[derive(Clone)]
+pub struct Repo {
+    repo: Repository,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -21,25 +23,68 @@ pub struct CommitLog {
     pub date: String,
 }
 
-impl Repo {
-    pub fn open(path: &str) -> Result<Repo> {
+#[derive(Deserialize, Serialize, Debug)]
+pub struct CommitData {
+    pub msg: String,
+    pub author: String,
+    pub added: Vec<(String, String)>,
+    pub removed: Vec<String>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub enum EntryKind {
+    File,
+    Dir,
+}
+
+#[derive(Debug)]
+pub struct Entry {
+    pub kind: EntryKind,
+    pub name: String,
+    pub id: gix::ObjectId,
+}
+
+impl ThreadSafeRepo {
+    pub fn open(path: &str) -> Result<ThreadSafeRepo> {
         let repo = ThreadSafeRepository::open(path).or_else(|_| {
             ThreadSafeRepository::init(path, create::Kind::Bare, create::Options::default())
         })?;
-        Ok(Repo { repo })
+        Ok(ThreadSafeRepo { repo })
     }
+    pub fn local(&self) -> Repo {
+        Repo {
+            repo: self.repo.to_thread_local(),
+        }
+    }
+}
 
+impl Repo {
     fn get_blob(&self, path: &str) -> Result<Vec<u8>> {
-        let repo = self.repo.to_thread_local();
-        let id = repo.rev_parse_single(format!("master:{}", path).as_bytes())?;
+        let id = self
+            .repo
+            .rev_parse_single(format!("master:{}", path).as_bytes())?;
         let obj = id.object()?;
         let blob = obj.peel_to_kind(object::Kind::Blob)?;
         Ok(blob.data.clone())
     }
 
-    fn get_tree<'a>(repo: &'a Repository, path: &str) -> Result<Tree<'a>> {
-        let id = repo.rev_parse_single(format!("master:{}", path).as_bytes())?;
+    pub fn get_blob_from_id(&self, id: gix::ObjectId) -> Result<Vec<u8>> {
+        let obj = self.repo.try_find_object(id)?.unwrap();
+        let blob = obj.peel_to_kind(object::Kind::Blob)?;
+        Ok(blob.data.clone())
+    }
+
+    pub fn get_tree<'a>(&'a self, path: &str) -> Result<Tree<'a>> {
+        let id = self
+            .repo
+            .rev_parse_single(format!("master:{}", path).as_bytes())?;
         let obj = id.object()?;
+        let tree = obj.peel_to_kind(object::Kind::Tree)?.into_tree();
+        Ok(tree)
+    }
+
+    pub fn get_tree_from_id(&self, id: gix::ObjectId) -> Result<gix::Tree<'_>> {
+        let obj = self.repo.try_find_object(id)?.unwrap();
         let tree = obj.peel_to_kind(object::Kind::Tree)?.into_tree();
         Ok(tree)
     }
@@ -50,99 +95,65 @@ impl Repo {
         Ok(content)
     }
 
-    fn parse_page(content: &str) -> Result<RawPage> {
-        if !content.starts_with("---") {
-            anyhow::bail!("missing YAML front matter");
-        }
-        let yaml = content.trim_start_matches("---");
-        let (yaml, md) = yaml
-            .split_once("---")
-            .ok_or_else(|| anyhow::anyhow!("malformed YAML front matter"))?;
-        let meta = serde_yaml::from_str(yaml).expect("invalid YAML front matter");
-        Ok(RawPage {
-            meta,
-            content: md.to_owned(),
-        })
-    }
-    fn write_page(p: &RawPage) -> Result<String> {
-        let mut ret = String::new();
-        ret.push_str("---\n");
-        let yaml = serde_yaml::to_string(&p.meta)?;
-        ret.push_str(&yaml);
-        ret.push_str("\n---\n");
-        ret.push_str(&p.content);
-        Ok(ret)
-    }
-
-    pub fn list_files(&self, path: &str) -> Result<Vec<Metadata>> {
-        use gix::objs::tree::EntryKind;
-        let repo = self.repo.to_thread_local();
-        let tree = Self::get_tree(&repo, path)?;
-        let mut ret = vec![];
-        for e in tree.iter() {
-            let e = e?;
-            match e.mode().kind() {
-                EntryKind::Blob => {
-                    let obj = e.object()?;
-                    let blob = obj.peel_to_kind(object::Kind::Blob)?;
-                    ret.push(Self::parse_page(std::str::from_utf8(&blob.data)?)?.meta);
-                }
-                EntryKind::Tree => {
-                }
+    pub fn list_entries<'a>(tree: &'a Tree<'_>) -> Result<impl Iterator<Item = Entry> + 'a> {
+        use gix::objs::tree;
+        Ok(tree.iter().filter_map(|e| {
+            let e = e.ok()?;
+            let kind = match e.mode().kind() {
+                tree::EntryKind::Blob => EntryKind::File,
+                tree::EntryKind::Tree => EntryKind::Dir,
                 _ => {
+                    return None;
                 }
-            }
-        }
-        Ok(ret)
+            };
+            Some(Entry {
+                name: e.filename().to_string(),
+                id: e.object_id(),
+                kind,
+            })
+        }))
     }
 
-    pub fn page_getter(&self, path: &str) -> Result<RawPage> {
-        let content = self.get_file(&format!("{}.md", path))?;
-        Self::parse_page(&content)
-    }
-
-    pub fn page_committer(&self, author: String, page: RawPage) -> Result<String> {
-        let link = slugify(&page.meta.title);
-        let content = Self::write_page(&page)?;
-
-        let repo = self.repo.to_thread_local();
-        let tree = Self::get_tree(&repo, "")?;
+    pub fn commit(&self, data: &CommitData) -> Result<gix::ObjectId> {
+        let tree = self.get_tree("")?;
         let mut treebuilder = TreeUpdateBuilder::new();
 
-        let blob_id = repo.write_blob(content.as_bytes())?;
-        treebuilder.upsert_blob(&format!("{}.md", link), blob_id.into());
+        for (path, content) in &data.added {
+            let blob_id = self.repo.write_blob(content.as_bytes())?;
+            treebuilder.upsert_blob(path, blob_id.into());
+        }
 
-        let oid = treebuilder.create_updated(&repo, &tree);
-        let newtree = repo.find_object(oid).unwrap();
+        let oid = treebuilder.create_updated(&self.repo, &tree);
+        let newtree = self.repo.find_object(oid).unwrap();
 
         let sig = Signature {
-            name: author.clone().into(),
-            email: format!("{}@peori.space", author).into(),
+            name: data.author.clone().into(),
+            email: format!("{}@peori.space", &data.author).into(),
             time: gix::date::Time::now_local_or_utc(),
         };
-        let mut branch = repo.find_reference("master")?;
+        let mut branch = self.repo.find_reference("master")?;
         let parent = branch.peel_to_id_in_place()?;
-        repo.commit_as(
-            &sig,
-            &sig,
-            branch.name().as_bstr(),
-            &format!("Edited `{}` from web", page.meta.title),
-            newtree.id,
-            Some(parent),
-        )
-        .unwrap();
-
-        Ok(link)
+        Ok(self
+            .repo
+            .commit_as(
+                &sig,
+                &sig,
+                branch.name().as_bstr(),
+                &data.msg,
+                newtree.id,
+                Some(parent),
+            )
+            .unwrap()
+            .into())
     }
 
     pub fn get_log(&self) -> Result<Vec<CommitLog>> {
-        let repo = self.repo.to_thread_local();
-        let head = repo.head_id()?.object()?.id;
-        let walk = repo.rev_walk(Some(head));
+        let head = self.repo.head_id()?.object()?.id;
+        let walk = self.repo.rev_walk(Some(head));
         let mut ret = Vec::new();
         for info in walk.all()? {
             let info = info?;
-            let commit = repo.find_object(info.id)?.into_commit();
+            let commit = self.repo.find_object(info.id)?.into_commit();
 
             let time = commit.time()?;
             let tz = FixedOffset::east_opt(time.offset)

@@ -33,7 +33,7 @@ struct Args {
 }
 
 pub struct WikiState {
-    pub repo: git::Repo,
+    pub repo: git::ThreadSafeRepo,
     pub commit_url_prefix: String,
     pub env: Environment<'static>,
 }
@@ -48,15 +48,12 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter(tracing_subscriber::EnvFilter::from_env("WIKIMARK_LOG"))
         .init();
 
-    let repo = git::Repo::open(&args.repo)?;
+    let repo = git::ThreadSafeRepo::open(&args.repo)?;
     let mut env = Environment::new();
-    let env_repo = repo.clone();
     env.set_loader(move |name| {
-        if let Ok(c) = env_repo.get_file(&format!("templates/{name}")) {
-            Ok(Some(c))
-        } else {
-            Ok(TEMPLATES.get_file(name).map(|f| f.contents_utf8().unwrap().to_owned()))
-        }
+        Ok(TEMPLATES
+            .get_file(name)
+            .map(|f| f.contents_utf8().unwrap().to_owned()))
     });
     let state = WikiState {
         repo,
@@ -68,9 +65,11 @@ async fn main() -> anyhow::Result<()> {
         .route("/", get(index))
         .route("/static/wiki.css", get(css))
         .route("/static/*path", get(assets))
-        .route("/page/:page", get(page))
+        .route("/page/", get(page))
+        .route("/page/*page", get(page))
         .route("/all", get(pages))
-        .route("/repo/:page", get(md))
+        .route("/repo/", get(md))
+        .route("/repo/*page", get(md))
         .route("/edit", get(edit))
         .route("/commit", post(commit))
         .route("/changelog", get(changelog))
