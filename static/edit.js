@@ -2,7 +2,11 @@ let base_url = window.location.origin+"/";
 
 let simplemde = new SimpleMDE();
 
+let uploading = false;
+
 window.addEventListener("beforeunload", function(ev) {
+	if (uploading)
+		return;
 	ev.preventDefault();
 	ev.returnValue = "Are you sure to exit the editor? All unsaved changes will be lost";
 });
@@ -36,6 +40,7 @@ function upload() {
 		content: content,
 		private: private,
 	};
+	uploading = true;
 	fetch(base_url+"commit", {
 		method: "POST",
 		body: JSON.stringify(data),
@@ -49,5 +54,6 @@ function upload() {
 		throw new Error("Response code is "+r.status);
 	}).then(link => {
 		window.location.href = base_url+'page/'+link;
-	}).catch(e => console.log(e));
+	}).catch(e => console.log(e))
+	.finally(() => { uploading = false; });
 }
