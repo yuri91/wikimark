@@ -152,17 +152,19 @@ fn write_page(p: &RawPage) -> Result<String> {
 }
 
 pub fn commit_page(repo: &Repo, author: String, update: PageUpdate) -> Result<String> {
-    let link = slugify(&update.page.meta.title);
-    let content = write_page(&update.page)?;
+    let fname = slugify(&update.page.meta.title);
     let mut dir = update.dir;
     if !dir.ends_with('/') {
         dir.push('/');
     }
+    let link = format!("{dir}{fname}");
+    let path = format!("{link}.md");
+    let content = write_page(&update.page)?;
 
     let data = CommitData {
         author,
         removed: vec![],
-        added: vec![(format!("{dir}{link}.md"), content)],
+        added: vec![(path, content)],
         msg: format!("Edited `{}` from web", update.page.meta.title),
     };
     repo.commit(&data)?;

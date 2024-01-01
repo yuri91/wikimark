@@ -52,7 +52,7 @@ async function upload() {
 	};
 	uploading = true;
 	try {
-		let resp = fetch(base_url+"commit", {
+		let resp = await fetch(base_url+"commit", {
 			method: "POST",
 			body: JSON.stringify(data),
 			headers: {
