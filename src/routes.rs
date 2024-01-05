@@ -74,10 +74,8 @@ impl<T> From<T> for Css<T> {
 
 type UserHeader = TypedHeader<User>;
 
-pub async fn index(State(state): State<Arc<WikiState>>, user: Option<UserHeader>) -> Html<String> {
-    let templ = state.env.get_template("index.html").unwrap();
-    let user_str = user.as_ref().map(|u| u.0 .0.as_str());
-    Html(templ.render(context!( user => user_str )).unwrap())
+pub async fn index() -> impl IntoResponse {
+    Redirect::permanent("./page/")
 }
 
 pub async fn page(
