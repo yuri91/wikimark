@@ -1,20 +1,16 @@
 {% extends "index.html" %}
 
 {% block content %}
-	<textarea>
-	</textarea>
-	<span>Title: </span><input id="title" type="text"></input>
-	<span>Directory: </span><input id="dir" type="text"></input>
+<form>
+	<textarea name="content" x-data='editor'>{%if page %}{{ page.content }}{% endif %}</textarea>
+	<span>Title: </span><input name="title" type="text" {%if page %}value="{{ page.meta.title }}"{% endif %}></input>
+	<span>Parent: </span><input name="parent" type="text" {%if path %}value="{{ path }}"{% endif %}></input>
 	<br/>
 	<br/>
-	<span>Private: </span><input id="private" type="checkbox"></input>
+	<span>Private: </span><input name="private" type="checkbox" value="true" {% if page and page.meta.private %}checked{% endif %}></input>
+	<span>Directory: </span><input name="directory" type="checkbox" value="true" {% if directory %}checked{% endif %}></input>
 	<br/>
 	<br/>
-	<button onclick="upload()">Upload</button>
+	<input type="submit" hx-post="/commit" hx-select="#content" hx-target="#content" hx-swap="outerHTML" hx-push-url="true" hx-include="[name='content']"></input>
+</form>
 {% endblock content %}
-
-{% block js_body %}
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
-	<script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
-	<script type="text/javascript" src="/static/edit.js"></script>
-{% endblock js_body %}

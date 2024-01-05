@@ -1,6 +1,6 @@
 [package]
 name = "wikimark"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Yuri Iozzelli <y.iozzelli@gmail.com>"]
 edition = "2021"
 
@@ -27,7 +27,7 @@ serde_yaml = "0.9.22"
 clap = { version = "4.4.8", features = ["derive", "env"] }
 tower-livereload = "0.8.2"
 chrono = "0.4.31"
-minijinja = { version = "1.0.10", features = ["loader"] }
+minijinja = { version = "1.0.10", features = ["loader", "builtins", "json"] }
 gix = "0.57.1"
 
 [profile.dist]

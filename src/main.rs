@@ -50,10 +50,13 @@ async fn main() -> anyhow::Result<()> {
 
     let repo = git::ThreadSafeRepo::open(&args.repo)?;
     let mut env = Environment::new();
+    let env_repo = repo.clone();
     env.set_loader(move |name| {
-        Ok(TEMPLATES
-            .get_file(name)
-            .map(|f| f.contents_utf8().unwrap().to_owned()))
+        if let Ok(c) = env_repo.local().get_file(&format!("templates/{name}")) {
+            Ok(Some(c))
+        } else {
+            Ok(TEMPLATES.get_file(name).map(|f| f.contents_utf8().unwrap().to_owned()))
+        }
     });
     let state = WikiState {
         repo,
@@ -68,8 +71,6 @@ async fn main() -> anyhow::Result<()> {
         .route("/page/", get(page))
         .route("/page/*page", get(page))
         .route("/all", get(pages))
-        .route("/repo/", get(md))
-        .route("/repo/*page", get(md))
         .route("/edit", get(edit))
         .route("/commit", post(commit))
         .route("/changelog", get(changelog))

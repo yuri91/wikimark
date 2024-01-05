@@ -2,7 +2,7 @@ use serde_derive::{Deserialize, Serialize};
 use serde_yaml::Value;
 use slab_tree::{RemoveBehavior, Tree};
 use slug::slugify;
-use std::collections::{BTreeMap};
+use std::collections::BTreeMap;
 
 use crate::git::{CommitData, EntryKind, Repo};
 
@@ -76,7 +76,8 @@ pub struct PageEntry {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PageUpdate {
     pub page: RawPage,
-    pub dir: String,
+    pub parent: String,
+    pub directory: bool,
 }
 
 pub fn parse_page(content: &str) -> Result<RawPage> {
@@ -132,13 +133,14 @@ pub fn list_files(repo: &Repo, path: &str, recursive: bool) -> Result<Vec<PageEn
     Ok(ret)
 }
 
-pub fn get_page(repo: &Repo, path: &str) -> Result<RawPage> {
-    let content = if path.ends_with('/') || path.is_empty() {
-        repo.get_file(&format!("{}_index.md", path))?
+pub fn get_page(repo: &Repo, path: &str) -> Result<(RawPage, bool)> {
+    let (content, is_dir) = if path.ends_with('/') || path.is_empty() {
+        (repo.get_file(&format!("{}_index.md", path))?, true)
     } else {
-        repo.get_file(&format!("{}.md", path))?
+        (repo.get_file(&format!("{}.md", path))?, false)
     };
-    parse_page(&content)
+    let page = parse_page(&content)?;
+    Ok((page, is_dir))
 }
 
 fn write_page(p: &RawPage) -> Result<String> {
@@ -153,12 +155,17 @@ fn write_page(p: &RawPage) -> Result<String> {
 
 pub fn commit_page(repo: &Repo, author: String, update: PageUpdate) -> Result<String> {
     let fname = slugify(&update.page.meta.title);
-    let mut dir = update.dir;
-    if !dir.ends_with('/') {
-        dir.push('/');
+    let mut parent = update.parent;
+    if !parent.ends_with('/') && !parent.is_empty() {
+        parent.push('/');
     }
-    let link = format!("{dir}{fname}");
-    let path = format!("{link}.md");
+    let (path, link) = if update.directory {
+        let link = format!("{parent}{fname}/");
+        (format!("{link}/_index.md"), link)
+    } else {
+        let link = format!("{parent}{fname}");
+        (format!("{link}.md"), link)
+    };
     let content = write_page(&update.page)?;
 
     let data = CommitData {

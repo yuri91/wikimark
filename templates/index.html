@@ -12,6 +12,7 @@
 		<link rel="icon" type="image/x-icon" href="/static/icons/favicon.ico">
 
 		<script src="https://unpkg.com/htmx.org@1.9.9"></script>
+		<script type="module" src="/static/editor.js"></script>
 		<script>
 			function collapse()
 			{
@@ -23,8 +24,6 @@
 				}
 			}
 		</script>
-		{% block js %}
-		{% endblock js %}
 
 		<!-- CSS -->
 		{% block css %}
@@ -84,9 +83,5 @@
 				</article>
 			</div>
 		</div>
-
-		{% block js_body %}
-			<script type="text/javascript" src="/static/wiki.js"></script>
-		{% endblock js_body %}
 	</body>
 </html>

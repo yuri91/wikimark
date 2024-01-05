@@ -1,13 +1,15 @@
 use super::{errors, md2html, page, WikiState};
 use axum::{
     body::{Bytes, Full},
-    extract::{Path, State, TypedHeader},
+    extract::{Path, State, TypedHeader, Query, Form},
     headers::{Header, HeaderName, HeaderValue},
-    response::{Html, IntoResponse, Response},
-    Json,
+    response::{Html, IntoResponse, Response, Redirect},
 };
+use serde_derive::Deserialize;
+use serde_yaml::Value;
 use minijinja::context;
 use std::sync::Arc;
+use std::collections::BTreeMap;
 
 type Result<T> = std::result::Result<T, errors::AppError>;
 
@@ -85,16 +87,15 @@ pub async fn page(
 ) -> Result<Html<String>> {
     let repo = state.repo.local();
     let fname = fname.unwrap_or_else(|| Path("".to_owned())).0;
-    let is_dir = fname.ends_with('/') || fname.is_empty();
-    let templ_file = if is_dir { "dir.html" } else { "page.html" };
-    let entries = if is_dir {
+    let (md, directory) = page::get_page(&repo, &fname)?;
+    let templ_file = if directory { "dir.html" } else { "page.html" };
+    let entries = if directory {
         Some(page::list_files(&repo, &fname, false)?)
     } else {
         None
     };
     let templ = state.env.get_template(templ_file).unwrap();
     let user_str = user.as_ref().map(|u| u.0 .0.as_str());
-    let md = page::get_page(&repo, &fname)?;
     let page = md2html::parse(&md.content, &md.meta);
     Ok(Html(templ.render(context!(
         user => user_str,
@@ -132,30 +133,63 @@ pub async fn changelog(
     ))?))
 }
 
-pub async fn edit(State(state): State<Arc<WikiState>>, user: UserHeader) -> Result<Html<String>> {
-    let templ = state.env.get_template("edit.html").unwrap();
+#[derive(Deserialize)]
+pub struct EditQuery {
+    page: Option<String>,
+}
+
+pub async fn edit(State(state): State<Arc<WikiState>>, user: UserHeader, Query(q): Query<EditQuery>) -> Result<Html<String>> {
+    let repo = state.repo.local();
     let user_str = user.0 .0.as_str();
-    Ok(Html(templ.render(context!(
-        user => user_str,
-    ))?))
+    let templ = state.env.get_template("edit.html").unwrap();
+    if let Some(page) = q.page {
+        let (md, directory) = page::get_page(&repo, &page)?;
+        let mut path = std::path::PathBuf::from(page);
+        path.pop();
+        Ok(Html(templ.render(context!(
+            user => user_str,
+            page => md,
+            path => path,
+            directory => directory,
+        ))?))
+    } else {
+        Ok(Html(templ.render(context!(
+            user => user_str,
+        ))?))
+    }
 }
 
-pub async fn md(
-    State(state): State<Arc<WikiState>>,
-    page: Option<Path<String>>,
-) -> Result<Json<page::RawPage>> {
-    let page = page.unwrap_or_else(|| Path("".to_owned())).0;
-    let ret = page::get_page(&state.repo.local(), &page)?;
-    Ok(Json(ret))
+#[derive(Deserialize, Debug)]
+pub struct CommitForm {
+    parent: String,
+    content: String,
+    title: String,
+    #[serde(default)]
+    private: bool,
+    #[serde(default)]
+    directory: bool,
+    #[serde(flatten)]
+    other: BTreeMap<String, Value>,
 }
-
 pub async fn commit(
     State(state): State<Arc<WikiState>>,
     user: UserHeader,
-    Json(info): Json<page::PageUpdate>,
-) -> Result<String> {
+    Form(form): Form<CommitForm>,
+) -> Result<impl IntoResponse> {
+    let info = page::PageUpdate {
+        parent: form.parent,
+        directory: form.directory,
+        page: page::RawPage {
+            content: form.content,
+            meta: page::Metadata {
+                title: form.title,
+                private: form.private,
+                other: form.other,
+            },
+        }
+    };
     let ret = page::commit_page(&state.repo.local(), user.0 .0, info)?;
-    Ok(ret)
+    Ok(Redirect::to(&format!("./page/{ret}")))
 }
 
 pub async fn css() -> Css<String> {
