@@ -1,4 +1,4 @@
-use pulldown_cmark::{html, CodeBlockKind, CowStr, Event, Parser, Tag};
+use pulldown_cmark::{html, CodeBlockKind, CowStr, Event, Parser, Tag, TagEnd};
 use slug::slugify;
 use std::sync::OnceLock;
 use syntect::easy::HighlightLines;
@@ -67,7 +67,7 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
                 let snippet = start_highlighted_html_snippet(theme);
                 Some(Event::Html(CowStr::Boxed(snippet.0.into_boxed_str())))
             }
-            Event::End(Tag::CodeBlock(_)) => {
+            Event::End(TagEnd::CodeBlock) => {
                 phase = ParsingPhase::Normal;
                 Some(Event::Html(CowStr::Borrowed("</pre>")))
             }
@@ -86,7 +86,7 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
                 }
                 ParsingPhase::Normal => Some(Event::Text(text)),
             },
-            Event::Start(Tag::Heading(level, ..)) => {
+            Event::Start(Tag::Heading { level, .. }) => {
                 let level = level as i32;
                 if level <= toc.get_mut(cur_section).unwrap().data().level {
                     cur_section = toc
@@ -108,7 +108,7 @@ pub fn parse(md: &str, meta: &Metadata) -> Page {
                 phase = ParsingPhase::Header(String::new());
                 None
             }
-            Event::End(Tag::Heading(..)) => {
+            Event::End(TagEnd::Heading(_)) => {
                 let mut cur_phase = ParsingPhase::Normal;
                 std::mem::swap(&mut cur_phase, &mut phase);
                 let h = match cur_phase {

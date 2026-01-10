@@ -5,29 +5,30 @@ authors = ["Yuri Iozzelli <y.iozzelli@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-pulldown-cmark = "0.9.3"
-syntect = "5.0.0"
-serde = "1.0.164"
-serde_derive = "1.0.164"
+pulldown-cmark = "0.13.0"
+syntect = "5.3.0"
+serde = "1.0.228"
+serde_derive = "1.0.228"
 slab_tree = "0.3.2"
-slug = "0.1.4"
-anyhow = "1.0.71"
-futures = "0.3.28"
-tokio = { version = "1.28.2", features = ["full"] }
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-axum = { version = "0.6.18", features = ["tracing", "headers", "macros"] }
-tower-http = { version = "0.4.1", features = ["fs", "trace"] }
-http = "0.2.9"
+slug = "0.1.6"
+anyhow = "1.0.100"
+futures = "0.3.31"
+tokio = { version = "1.49.0", features = ["full"] }
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+axum = { version = "0.8.8", features = ["tracing", "macros"] }
+axum-extra = { version = "0.12.5", features = ["typed-header"] }
+tower-http = { version = "0.6.8", features = ["fs", "trace"] }
+http = "1.4.0"
 dotenv = "0.15.0"
-tracing = "0.1.37"
-include_dir = "0.7.3"
-grass = { version = "0.12.4", features = ["macro"] }
-mime_guess = "2.0.4"
-serde_yaml = "0.9.22"
-clap = { version = "4.4.8", features = ["derive", "env"] }
-tower-livereload = "0.8.2"
-chrono = "0.4.31"
-minijinja = { version = "1.0.10", features = ["loader", "builtins", "json"] }
+tracing = "0.1.44"
+include_dir = "0.7.4"
+grass = { version = "0.13.4", features = ["macro"] }
+mime_guess = "2.0.5"
+serde_yaml = "0.9.34"
+clap = { version = "4.5.54", features = ["derive", "env"] }
+tower-livereload = "0.10.2"
+chrono = "0.4.42"
+minijinja = { version = "2.14.0", features = ["loader", "builtins", "json"] }
 gix = "0.77.0"
 
 [profile.dist]

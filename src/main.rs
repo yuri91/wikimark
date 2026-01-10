@@ -67,9 +67,9 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .route("/", get(index))
         .route("/static/wiki.css", get(css))
-        .route("/static/*path", get(assets))
+        .route("/static/{*path}", get(assets))
         .route("/page/", get(page))
-        .route("/page/*page", get(page))
+        .route("/page/{*page}", get(page))
         .route("/all", get(pages))
         .route("/edit", get(edit))
         .route("/commit", post(commit))
@@ -90,8 +90,7 @@ async fn main() -> anyhow::Result<()> {
         |r: &axum::http::Request<axum::body::Body>| r.headers().get("HX-Request").is_none(),
     ));
 
-    axum::Server::bind(&format!("{}:{}", args.address, args.port).parse()?)
-        .serve(app.into_make_service())
-        .await?;
+    let listener = tokio::net::TcpListener::bind(format!("{}:{}", args.address, args.port)).await?;
+    axum::serve(listener, app).await?;
     Ok(())
 }

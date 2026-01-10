@@ -1,10 +1,10 @@
 use super::{errors, md2html, page, WikiState};
 use axum::{
-    body::{Bytes, Full},
-    extract::{Path, State, TypedHeader, Query, Form},
-    headers::{Header, HeaderName, HeaderValue},
+    extract::{Path, State, Query, Form},
     response::{Html, IntoResponse, Response, Redirect},
 };
+use axum_extra::TypedHeader;
+use axum_extra::headers::{Header, HeaderName, HeaderValue, Error as HeaderError};
 use serde_derive::Deserialize;
 use serde_yaml::Value;
 use minijinja::context;
@@ -21,7 +21,7 @@ impl Header for User {
     fn name() -> &'static HeaderName {
         &USER_HEADER_NAME
     }
-    fn decode<'i, I>(values: &mut I) -> std::result::Result<Self, axum::headers::Error>
+    fn decode<'i, I>(values: &mut I) -> std::result::Result<Self, HeaderError>
     where
         Self: Sized,
         I: Iterator<Item = &'i HeaderValue>,
@@ -30,11 +30,11 @@ impl Header for User {
         if let Some(u) = user {
             return Ok(User(u.to_string()));
         }
-        let value = values.next().ok_or_else(axum::headers::Error::invalid)?;
+        let value = values.next().ok_or_else(HeaderError::invalid)?;
         Ok(User(
             value
                 .to_str()
-                .map_err(|_| axum::headers::Error::invalid())?
+                .map_err(|_| HeaderError::invalid())?
                 .to_owned(),
         ))
     }
@@ -47,12 +47,12 @@ impl Header for User {
 /// A CSS response.
 ///
 /// Will automatically get `Content-Type: text/css`.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Css<T>(pub T);
 
 impl<T> IntoResponse for Css<T>
 where
-    T: Into<Full<Bytes>>,
+    T: Into<String>,
 {
     fn into_response(self) -> Response {
         (
