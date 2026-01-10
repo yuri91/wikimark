@@ -28,7 +28,7 @@ clap = { version = "4.4.8", features = ["derive", "env"] }
 tower-livereload = "0.8.2"
 chrono = "0.4.31"
 minijinja = { version = "1.0.10", features = ["loader", "builtins", "json"] }
-gix = "0.57.1"
+gix = "0.77.0"
 
 [profile.dist]
 inherits = "release"

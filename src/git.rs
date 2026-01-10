@@ -132,12 +132,14 @@ impl Repo {
             time: gix::date::Time::now_local_or_utc(),
         };
         let mut branch = self.repo.find_reference("master")?;
-        let parent = branch.peel_to_id_in_place()?;
+        let parent = branch.peel_to_id()?;
+        let mut committer_buf = gix::date::parse::TimeBuf::default();
+        let mut author_buf = gix::date::parse::TimeBuf::default();
         Ok(self
             .repo
             .commit_as(
-                &sig,
-                &sig,
+                sig.to_ref(&mut committer_buf),
+                sig.to_ref(&mut author_buf),
                 branch.name().as_bstr(),
                 &data.msg,
                 newtree.id,
