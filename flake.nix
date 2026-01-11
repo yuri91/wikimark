@@ -9,55 +9,28 @@
     naersk.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, rust-overlay, naersk, ... } @ inputs:
+  outputs = { self, nixpkgs, rust-overlay, naersk, ... }:
   let
     system = "x86_64-linux";
+    lib = nixpkgs.lib;
     pkgs = import nixpkgs {
       inherit system;
       overlays = [ rust-overlay.overlays.default ];
     };
-    CARGO_BUILD_TARGET = "x86_64-unknown-linux-musl";
-    CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static";
-    rust-build = pkgs.rust-bin.stable.latest.default.override {
-      extensions = [ "rust-src" ];
-      targets = [ CARGO_BUILD_TARGET ];
-    };
-    naersk-lib = naersk.lib.${system}.override {
-      rustc = rust-build;
-      cargo = rust-build;
-    };
-    wikimark = naersk-lib.buildPackage {
-      pname = "wikimark";
-      root = ./.;
-      buildInputs = with pkgs; [
-      ];
-      nativeBuildInputs = with pkgs; [
-        rust-build
-        pkgsStatic.stdenv.cc
-      ];
-      release = false;
-      cargo_release = "--profile dist";
-      inherit CARGO_BUILD_TARGET;
-      inherit CARGO_BUILD_RUSTFLAGS;
+    wikimark = pkgs.callPackage ./nix/package.nix {
+      naersk = naersk.lib.${system};
     };
   in
   {
-    devShell.${system} = pkgs.mkShell {
-      packages = with pkgs; [
-        git
-        cargo-edit
-        cargo-watch
-        rust-analyzer-unwrapped
-      ];
-      inputsFrom = with pkgs; [
-        wikimark
-      ];
-      RUST_SRC_PATH = "${rust-build}/lib/rustlib/src/rust/library";
-      inherit CARGO_BUILD_TARGET;
-      inherit CARGO_BUILD_RUSTFLAGS;
+    devShells.${system}.default = pkgs.callPackage ./nix/devshell.nix {
+      inherit wikimark;
     };
-    packages.${system} = {
-      default = wikimark;
+
+    packages.${system}.default = wikimark;
+
+    nixosModules.default = { pkgs, ... }: {
+      imports = [ ./nix/nixos-module.nix ];
+      services.wikimark.package = lib.mkDefault self.packages.${pkgs.system}.default;
     };
   };
 }
