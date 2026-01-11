@@ -239,8 +239,7 @@ impl TreeUpdateBuilder {
         let mut nt = Tree::empty();
         let tree_ref = current.decode().unwrap();
 
-        // Since they are stored in a btreemap we don't have to worry about
-        // sorting here to satisfy the constraints of Tree
+        // Add entries from the update tree
         for (filename, entry) in tree {
             match entry {
                 UpdateEntry::Blob(oid) => {
@@ -289,6 +288,8 @@ impl TreeUpdateBuilder {
             }
         }
 
+        // Sort using git's tree ordering (directories sort as if they have trailing '/')
+        nt.entries.sort();
         repo.write_object(nt).unwrap().detach()
     }
 }
