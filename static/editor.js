@@ -31,16 +31,11 @@ Alpine.data("editor", () => ({
     });
     mde.value(this.$el.text);
     this.mde = mde;
-    Object.defineProperty(this.$el, "value", {
-      get() {
-        return mde.value();
-      },
-      set(v) {
-        mde.value(v);
-      },
-      enumerable: true,
-    });
 
+    // Keep textarea value synced for htmx form serialization
+    mde.codemirror.on('change', () => {
+      this.$el.value = mde.value();
+    });
   },
 }));
 Alpine.start();
