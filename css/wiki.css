@@ -1,8 +1,10 @@
-@charset "utf-8";
-
-@import "normalize";
-
-@import "icons";
+:root {
+	--header-color: #086788;
+	--nav-color: #263238;
+	--nav-section-color: #37474f;
+	--nav-text-color: #ffffff;
+	--nav-selected-color: #4e6069;
+}
 
 * {
 	box-sizing: border-box;
@@ -27,68 +29,68 @@ pre {
 	overflow: auto;
 }
 
-$header-color: #086788;
-$nav-color: #263238;
-$nav-section-color: #37474f;
-$nav-text-color: #ffffff;
-$nav-selected-color: #4e6069;
-
 #content {
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-	header {
+
+	& header {
 		flex: 0 0 40px;
-		background-color: $header-color;
+		background-color: var(--header-color);
 		box-shadow: 0 0 5px rgba(0,0,0,0.3);
 	}
 }
+
 #main {
 	flex: 1 1 auto;
 	min-height: 0;
 	display: flex;
 	flex-direction: row;
-	nav {
-		background-color: $nav-color;
+
+	& nav {
+		background-color: var(--nav-color);
 		flex: 0 0 200px;
 		overflow: hidden;
 		flex-direction: column;
-		#links {
-		}
-		#toc {
-			flex: auto;
-		}
-		h3 {
-			background-color: $nav-section-color;
+
+		& h3 {
+			background-color: var(--nav-section-color);
 			padding: 8px;
 			margin: 0;
 			box-shadow: 0 0 5px rgba(0,0,0,0.3);
 			text-align: center;
 		}
-		li {
-			a {
-				color: $nav-text-color;
-				text-decoration: none;
-				display: inline-block;
-				width: 100%;
-				padding: 8px;
-			}
-			a:hover {
-				background-color: $nav-selected-color;
-			}
+
+		& li a {
+			color: var(--nav-text-color);
+			text-decoration: none;
+			display: inline-block;
+			width: 100%;
+			padding: 8px;
 		}
-		ul {
+
+		& li a:hover {
+			background-color: var(--nav-selected-color);
+		}
+
+		& ul {
 			list-style-type: none;
 			margin: 0;
 			padding: 0;
 			font-weight: bold;
-			ul {
+
+			& ul {
 				font-weight: normal;
 				margin-left: 10px;
 			}
 		}
+
+		& #toc {
+			flex: auto;
+		}
 	}
-	article {
+
+	& article {
 		flex: 1 1 auto;
 		min-height: 0;
 		overflow: auto;
@@ -101,22 +103,25 @@ $nav-selected-color: #4e6069;
 	flex-direction: row;
 	justify-content: flex-end;
 	align-items: stretch;
-
 	font-weight: bold;
-	a, .user {
+
+	& a, & .user {
 		padding: 7px;
 		text-decoration: none;
-		color: $nav-text-color;
+		color: var(--nav-text-color);
 	}
-	a:hover {
-		background-color: $nav-selected-color;
+
+	& a:hover {
+		background-color: var(--nav-selected-color);
 	}
-	.toolbar-divider {
+
+	& .toolbar-divider {
 		border-left: 2px solid white;
 		height: 24px;
 		margin: 7px;
 	}
-	.left {
+
+	& .left {
 		margin: 2px;
 		padding-left: 7px;
 		padding-right: 7px;
@@ -125,19 +130,13 @@ $nav-selected-color: #4e6069;
 }
 
 @media only screen and (min-width: 600px) {
-	#main {
-		nav {
+	#main nav {
 		display: flex;
-		}
 	}
 }
 
 @media only screen and (max-width: 600px) {
-	#main {
-		nav {
-			display: none;
-		}
+	#main nav {
+		display: none;
 	}
 }
-
-@import "content";

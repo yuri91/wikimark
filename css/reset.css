@@ -1,0 +1,4 @@
+/* Minimal reset - modern browsers handle most things correctly */
+body {
+	margin: 0;
+}

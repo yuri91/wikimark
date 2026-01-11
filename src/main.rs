@@ -17,7 +17,12 @@ mod routes;
 
 pub static STATIC_ASSETS: Dir = include_dir!("static");
 pub static TEMPLATES: Dir = include_dir!("templates");
-pub static CSS: &str = grass::include!("sass/wiki.scss");
+pub static CSS: &str = concat!(
+    include_str!("../css/reset.css"),
+    include_str!("../css/icons.css"),
+    include_str!("../css/wiki.css"),
+    include_str!("../css/content.css"),
+);
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

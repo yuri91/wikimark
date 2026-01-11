@@ -1,33 +1,36 @@
-$title-color: #f0c808;
+:root {
+	--title-color: #f0c808;
+}
 
 h1, h2, h3, h4, h5, h6 {
-	.zola-anchor {
+	& .zola-anchor {
 		color: #4183c4;
 		padding-left: 10px;
 		text-decoration: none;
 		font-weight: initial;
 		visibility: hidden;
-
 	}
-	&:hover {
-		.zola-anchor {
-			visibility: visible;
-		}
+
+	&:hover .zola-anchor {
+		visibility: visible;
 	}
 }
-hr {
 
+hr {
 	border-top: 8px solid #bbb;
 	border-radius: 5px;
 	margin-right: 8px;
 	margin-left: 8px;
 }
+
 .content {
 	padding: 8px;
 }
+
 .title {
-	background-color: $title-color;
-	h1 {
+	background-color: var(--title-color);
+
+	& h1 {
 		font-size: 3em;
 		margin-top: 0;
 		margin-bottom: 0;
