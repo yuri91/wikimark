@@ -16,7 +16,7 @@ type Result<T> = std::result::Result<T, errors::AppError>;
 #[derive(Debug)]
 pub struct User(String);
 
-static USER_HEADER_NAME: HeaderName = HeaderName::from_static("x-forwarded-user");
+static USER_HEADER_NAME: HeaderName = HeaderName::from_static("remote-user");
 impl Header for User {
     fn name() -> &'static HeaderName {
         &USER_HEADER_NAME
