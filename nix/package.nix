@@ -30,4 +30,6 @@ naersk-lib.buildPackage {
   passthru = {
     inherit CARGO_BUILD_TARGET CARGO_BUILD_RUSTFLAGS rust-build;
   };
+
+  meta.mainProgram = "wikimark";
 }
