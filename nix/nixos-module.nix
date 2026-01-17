@@ -91,7 +91,6 @@ in
         ProtectHome = true;
         PrivateTmp = true;
         ReadWritePaths = [ cfg.repoPath ];
-        StateDirectory = lib.mkIf (lib.hasPrefix "/var/lib/wikimark" (toString cfg.repoPath)) "wikimark";
       } // lib.optionalAttrs (cfg.environmentFile != null) {
         EnvironmentFile = cfg.environmentFile;
       };
